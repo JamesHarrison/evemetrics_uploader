@@ -9,7 +9,7 @@ class Uploader:
     
 
   # Sets the application token for this user
-  def set_token(self,key):
+  def set_token(self,token):
     self.token = token
     
   # Sends the passed result of a file parse to EVE Metrics.
