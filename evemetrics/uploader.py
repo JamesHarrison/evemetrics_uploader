@@ -22,7 +22,7 @@ class Uploader:
     body_hash = hasher.hexdigest()
     # Fire off a HTTP request
     conn = httplib.HTTPConnection("eve-metrics.com")
-    conn.request("POST", target, urllib.urlencode({'token':self.token, 'developer_key':self.developer_key,'version':'2.0','hash':body_hash,'generated_at':data[4],'body': data[3]}), {'Content-Type': 'application/x-www-form-urlencoded'} )
+    conn.request("POST", target, urllib.urlencode({'token':self.token, 'developer_key':self.developer_key,'version':'2.0','hash':body_hash,'generated_at':data[4],'log': data[3]}), {'Content-Type': 'application/x-www-form-urlencoded'} )
     response = conn.getresponse()
     print response.status, response.reason
     print response.read()

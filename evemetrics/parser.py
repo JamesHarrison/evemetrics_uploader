@@ -1,12 +1,16 @@
 """Parser for cache files written on top of reverence"""
-# Dependencies
-from reverence import blue
+
 import csv
 import StringIO
 import datetime
+import pprint
+
+from reverence import blue
+
 # Quick helper function to convert CCP's long date format (Windows timestamp) into a UTC datetime object.
 def wintime_to_datetime(timestamp):
   return datetime.datetime.utcfromtimestamp((timestamp-116444736000000000)/10000000)
+
 # Converts relevant cache files into CSV suitable for upload.
 def parse(filepath):
   key, obj = blue.marshal.Load(open(filepath, "rb").read())
@@ -27,5 +31,10 @@ def parse(filepath):
         order.volEntered, order.minVolume, order.bid, wintime_to_datetime(order.issued).strftime("%Y-%m-%d %H:%M:%S"), order.duration,
         order.stationID, order.regionID, order.solarSystemID, order.jumps, 'cache'
       ])
+  else:
+    print 'skipping unknown key %s' % pprint.pformat( key )
+    return
   s.seek(0)
-  return [key[1],key[2],key[3],s.read(),wintime_to_datetime(obj['version'][0]).strftime("%Y-%m-%d %H:%M:%S")]
+  return [ key[1], key[2], key[3], s.read(), wintime_to_datetime( obj['version'][0] ).strftime("%Y-%m-%d %H:%M:%S") ]
+
+  
