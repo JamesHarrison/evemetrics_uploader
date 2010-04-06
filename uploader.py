@@ -1,5 +1,5 @@
 # python modules
-import sys, traceback
+import sys, os, traceback
 from optparse import OptionParser
 # python extras
 import pyinotify
@@ -9,8 +9,12 @@ from evemetrics import parser, uploader
 class HandleEvents(pyinotify.ProcessEvent):
     def process_IN_CLOSE_WRITE(self, event):
         try:
-            print 'Creating: %s' % event.pathname
+            print 'New file: %s' % event.pathname
+            if ( os.path.splitext( event.pathname )[1] != '.cache' ):
+                return
             parsed_data = parser.parse(event.pathname)
+            if ( parsed_data is None ):
+                return
             print 'Call %s, regionID %d, typeID %d' % ( parsed_data[0], parsed_data[1], parsed_data[2] )
             ret = upload_client.send(parsed_data)
         except:
