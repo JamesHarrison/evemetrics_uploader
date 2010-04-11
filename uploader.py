@@ -1,51 +1,85 @@
-# python modules
-import sys, os, time, traceback
+#!/usr/bin/env python2.6
+
+import sys, os, time, traceback, pprint
 from optparse import OptionParser
-# python extras
-import pyinotify
-# local modules
+
 from evemetrics import parser, uploader
 
-class HandleEvents(pyinotify.ProcessEvent):
-    def process_IN_CLOSE_WRITE(self, event):
+class Processor( object ):
+    def __init__( self, upload_client ):
+        self.upload_client = upload_client
+
+    def OnNewFile( self, pathname ):
         try:
-            print 'New file: %s' % event.pathname
-            if ( os.path.splitext( event.pathname )[1] != '.cache' ):
+            print 'New or modified file: %s' % pathname
+            if ( os.path.splitext( pathname )[1] != '.cache' ):
+                print 'Not .cache, skipping'
                 return
             try:
-                parsed_data = parser.parse(event.pathname)
+                parsed_data = parser.parse( pathname )
             except IOError:
                 # I was retrying initially, but some files are deleted before we get a chance to parse them,
                 # which is what's really causing this
                 print 'IOError exception, skipping'
                 return
             if ( parsed_data is None ):
+                print 'No data parsed'
                 return
             print 'Call %s, regionID %d, typeID %d' % ( parsed_data[0], parsed_data[1], parsed_data[2] )
-            ret = upload_client.send(parsed_data)
+            ret = self.upload_client.send(parsed_data)
         except:
             traceback.print_exc()
         else:
             print ret
 
+class PollMonitor( object ):
+    def __init__( self, processor ):
+        self.processor = processor
+        self.tree = None
+
+    # note: last modification time could work too, but I'm less trusting of the portability/reliability of that approach
+    def Scan( self, path ):
+        tree = set()
+        for root, dirs, files in os.walk( path ):
+            for fi in files:
+                fn = os.path.join( path, root, fi )
+                # skip != .cache early to minimize work
+                if ( os.path.splitext( fn )[1] != '.cache' ):
+                    continue
+                tree.add( ( fn, os.stat( fn ).st_mtime ) )
+        if ( self.tree is None ):
+            self.tree = tree
+            return
+        # see what new files may have been added
+        new = tree.difference( self.tree )
+        if ( len( new ) != 0 ):
+#            pprint.pprint( new )
+            for fn in new:
+                fpn = os.path.join( path, fn[0] )
+#                pprint.pprint( fpn )
+                self.processor.OnNewFile( fpn )
+        self.tree = tree
+        print '%d files' % len( self.tree )
+
+    def Run( self, poll, path ):
+        # first call is a no-op initializing the list
+        self.Scan( path )
+        while ( True ):
+            try:
+                self.Scan( path )
+            except:
+                traceback.print_exc()
+            time.sleep( poll )
+
 if ( __name__ == '__main__' ):
     p = OptionParser()
     p.add_option( '-t', '--token', dest = 'token', help = 'EVE Metrics application token - see http://www.eve-metrics.com/downloads' )
     p.add_option( '-p', '--path', dest = 'path', default = r'C:\Users\James\AppData\Local\CCP\EVE\c_program_files_(x86)_ccp_eve_-_5_tranquility\cache', help = 'EVE cache path' )
+    p.add_option( '-P', '--poll', dest = 'poll', default = 10, help = 'Poll every n seconds (default 10)' ) 
     ( options, args ) = p.parse_args()
 
-    wm = pyinotify.WatchManager()
-    mask = pyinotify.IN_CLOSE_WRITE
     upload_client = uploader.Uploader()
     upload_client.set_token( options.token )
-
-    notifier = pyinotify.ThreadedNotifier(wm, HandleEvents())
-    notifier.start()
-    
-    # On windows this path would be C:\Users\James\AppData\Local\CCP\EVE\c_program_files_(x86)_ccp_eve_-_5_tranquility\cache\ 
-    # the folder should contain a MachoNet folder (plus others)
-    # if you run multiple clients, just call wm.add_watch some more.
-    wdd = wm.add_watch( options.path, mask, rec = True )
-
-
-
+    processor = Processor( upload_client )
+    monitor = PollMonitor( processor )
+    monitor.Run( float( options.poll ), options.path )
