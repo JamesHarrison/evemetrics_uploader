@@ -1,5 +1,5 @@
 # python modules
-import sys, os, traceback
+import sys, os, time, traceback
 from optparse import OptionParser
 # python extras
 import pyinotify
@@ -12,7 +12,13 @@ class HandleEvents(pyinotify.ProcessEvent):
             print 'New file: %s' % event.pathname
             if ( os.path.splitext( event.pathname )[1] != '.cache' ):
                 return
-            parsed_data = parser.parse(event.pathname)
+            try:
+                parsed_data = parser.parse(event.pathname)
+            except IOError:
+                # I was retrying initially, but some files are deleted before we get a chance to parse them,
+                # which is what's really causing this
+                print 'IOError exception, skipping'
+                return
             if ( parsed_data is None ):
                 return
             print 'Call %s, regionID %d, typeID %d' % ( parsed_data[0], parsed_data[1], parsed_data[2] )
