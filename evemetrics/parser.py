@@ -36,5 +36,3 @@ def parse(filepath):
     return
   s.seek(0)
   return [ key[1], key[2], key[3], s.read(), wintime_to_datetime( obj['version'][0] ).strftime("%Y-%m-%d %H:%M:%S") ]
-
-  

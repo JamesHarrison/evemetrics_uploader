@@ -1,7 +1,9 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/env python
 
 import sys, os, time, traceback, pprint
+
 from optparse import OptionParser
+from cmdline import ParseWithFile
 
 from evemetrics import parser, uploader
 
@@ -72,11 +74,32 @@ class PollMonitor( object ):
             time.sleep( poll )
 
 if ( __name__ == '__main__' ):
+    # using cmdline helper module for disk backing
+    # pydoc ./cmdline.py
+    # defaults are handled separately with the cmdline module
+    defaults = { 'poll' : 10, 'gui' : True }
     p = OptionParser()
-    p.add_option( '-t', '--token', dest = 'token', help = 'EVE Metrics application token - see http://www.eve-metrics.com/downloads' )
-    p.add_option( '-p', '--path', dest = 'path', default = r'C:\Users\James\AppData\Local\CCP\EVE\c_program_files_(x86)_ccp_eve_-_5_tranquility\cache', help = 'EVE cache path' )
-    p.add_option( '-P', '--poll', dest = 'poll', default = 10, help = 'Poll every n seconds (default 10)' ) 
-    ( options, args ) = p.parse_args()
+    # core
+    p.add_option( '-t', '--token', dest = 'token', help = 'EVE Metrics uploader token - see http://www.eve-metrics.com/downloads' )
+    p.add_option( '-p', '--path', dest = 'path', help = 'EVE cache path' )
+    # UI
+    p.add_option( '-n', '--nogui', action = 'store_false', dest = 'gui', help = 'Run in text mode' )
+    p.add_option( '-g', '--gui', action = 'store_true', dest = 'gui', help = 'Run in GUI mode' )
+    # filesystem alteration monitoring
+    p.add_option( '-P', '--poll', dest = 'poll', help = 'Poll every n seconds (default %d)' % defaults['poll'] )
+
+    ( options, args ) = ParseWithFile( p, defaults, filename = 'eve_uploader.ini' )
+
+    print 'Token: %r' % options.token
+    print 'Path: %r' % options.path
+    print 'GUI: %r' % options.gui
+
+    if ( options.gui ):
+        print 'GUI mode not supported yet.'
+
+    # TODO: if gui mode, initialize pyqt modules etc.
+    # TODO: auto detect path if needed
+    # TODO: prompt for token and path (GUI)
 
     upload_client = uploader.Uploader()
     upload_client.set_token( options.token )
