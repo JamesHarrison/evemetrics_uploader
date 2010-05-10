@@ -38,13 +38,17 @@ class PollMonitor( object ):
     def __init__( self, processor ):
         self.processor = processor
         self.tree = None
+        self.path = None
 
     # note: last modification time could work too, but I'm less trusting of the portability/reliability of that approach
-    def Scan( self, path ):
+    def Scan( self ):
+        if ( self.path is None ):
+            print 'Path is not defined'
+            return
         tree = set()
-        for root, dirs, files in os.walk( path ):
+        for root, dirs, files in os.walk( self.path ):
             for fi in files:
-                fn = os.path.join( path, root, fi )
+                fn = os.path.join( self.path, root, fi )
                 # skip != .cache early to minimize work
                 if ( os.path.splitext( fn )[1] != '.cache' ):
                     continue
@@ -57,21 +61,66 @@ class PollMonitor( object ):
         if ( len( new ) != 0 ):
 #            pprint.pprint( new )
             for fn in new:
-                fpn = os.path.join( path, fn[0] )
+                fpn = os.path.join( self.path, fn[0] )
 #                pprint.pprint( fpn )
                 self.processor.OnNewFile( fpn )
         self.tree = tree
         print '%d files' % len( self.tree )
 
-    def Run( self, poll, path ):
+    def Run( self, poll ):
         # first call is a no-op initializing the list
-        self.Scan( path )
+        self.Scan()
         while ( True ):
             try:
-                self.Scan( path )
+                self.Scan()
             except:
                 traceback.print_exc()
             time.sleep( poll )
+
+class stdout_wrap( object ):
+    def __init__( self, relay ):
+        self.relay = relay
+
+    def write( self, str ):
+        self.relay( str )
+
+class GUI( object ):
+    def __init__( self, monitor, args ):
+        self.monitor = monitor
+        self.args = args
+        self.app = None
+        self.status = None
+        self.stdout_line = ''
+
+    def monkeypatch_write( self, str ):
+        sys.__stdout__.write( str )
+        # appendPlainText inserts \n for each call, compensate
+        self.stdout_line += str
+        spl = self.stdout_line.split('\n')
+        if ( len( spl ) >= 2 ):
+            while ( len( spl ) > 1 ):
+                self.status.appendPlainText( spl[0] )
+                spl = spl[1:]
+            assert( len( spl ) == 1 )
+            self.stdout_line = spl[0]
+
+    def Run( self ):
+        self.app = QtGui.QApplication( self.args )
+
+        self.status = QtGui.QPlainTextEdit()
+        self.status.setReadOnly( True )
+        self.status.show()
+        self.status.raise_()
+
+        sys.stdout = stdout_wrap( self.monkeypatch_write )
+
+        self.timer = QtCore.QTimer()
+        QtCore.QObject.connect( self.timer, QtCore.SIGNAL("timeout()"), self.monitor.Scan )
+        self.timer.start( float( options.poll ) * 1000 )
+
+        print 'Eve Metrics uploader started'
+
+        sys.exit( self.app.exec_() )
 
 if ( __name__ == '__main__' ):
     # using cmdline helper module for disk backing
@@ -94,15 +143,25 @@ if ( __name__ == '__main__' ):
     print 'Path: %r' % options.path
     print 'GUI: %r' % options.gui
 
-    if ( options.gui ):
-        print 'GUI mode not supported yet.'
-
-    # TODO: if gui mode, initialize pyqt modules etc.
-    # TODO: auto detect path if needed
-    # TODO: prompt for token and path (GUI)
-
     upload_client = uploader.Uploader()
     upload_client.set_token( options.token )
     processor = Processor( upload_client )
     monitor = PollMonitor( processor )
-    monitor.Run( float( options.poll ), options.path )
+    monitor.path = options.path
+
+    if ( options.gui ):
+        try:
+            print 'Starting up GUI subsystem'
+            from PyQt4 import QtCore
+            from PyQt4 import QtGui
+        except:
+            traceback.print_exc()            
+            print 'There was a problem with the PyQt backend. Running in text mode.'
+        else:
+            gui = GUI( monitor, args )
+            gui.Run()
+
+    if ( options.token is None or options.path is None ):
+        raise Exception( 'Insufficient command line data' )
+
+    monitor.Run( float( options.poll ) )
