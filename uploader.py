@@ -85,8 +85,9 @@ class stdout_wrap( object ):
         self.relay( str )
 
 class GUI( object ):
-    def __init__( self, monitor, args ):
+    def __init__( self, monitor, options, args ):
         self.monitor = monitor
+        self.options = options
         self.args = args
         self.app = None
         self.status = None
@@ -96,6 +97,9 @@ class GUI( object ):
         self.mainwindow = None
         self.status = None
         self.timer = None
+
+        self.token_edit = None
+        self.path_edit = None
 
     def setStatus( self, msg ):
         self.mainwindow.statusBar().showMessage( msg )        
@@ -111,6 +115,11 @@ class GUI( object ):
                 spl = spl[1:]
             assert( len( spl ) == 1 )
             self.stdout_line = spl[0]
+
+    def browsePath( self ):
+        
+        fileName = QtGui.QFileDialog.getExistingDirectory( self.mainwindow, 'Select your EvE directory (where eve.exe resides)' )
+        
 
     def Run( self ):
         self.app = QtGui.QApplication( self.args )
@@ -128,40 +137,26 @@ class GUI( object ):
         self.status.setReadOnly( True )
         sys.stdout = stdout_wrap( self.monkeypatch_write )
 
-        # menu strategy
-        self.mainwindow.setCentralWidget( self.status )
+        # tabs
+        self.tabs = QtGui.QTabWidget()
+        self.tabs.addTab( self.status, 'Activity' )
 
-        exit_ = QtGui.QAction( QtGui.QIcon( 'icons/exit.png' ), 'Quit', self.mainwindow )
-        exit_.setShortcut( 'Ctrl+Q' )
-        exit_.setStatusTip( 'Quit' )
-        QtCore.QObject.connect( exit_, QtCore.SIGNAL( 'triggered()' ), self.mainwindow, QtCore.SLOT( 'close()' ) )
+        prefs_layout = QtGui.QFormLayout()
+        self.token_edit = QtGui.QLineEdit()
+        prefs_layout.addRow( QtGui.QLabel( 'User Token:' ), self.token_edit )
+        self.path_browse = QtGui.QPushButton( 'Change' )
+        QtCore.QObject.connect( self.path_browse, QtCore.SIGNAL( 'clicked()' ), self.browsePath )
+        prefs_layout.addRow( QtGui.QLabel( 'EvE cache path:' ), self.path_browse )
+        prefs_widg = QtGui.QWidget()
+        prefs_widg.setLayout( prefs_layout )
+        self.tabs.addTab( prefs_widg, 'Preferences' )
 
-        prefs = QtGui.QAction( QtGui.QIcon( 'icons/prefs.png' ), 'Prefs', self.mainwindow )
-        prefs.setShortcut( 'Ctrl+P' )
-        prefs.setStatusTip( 'Preferences' )
-#        QtCore.QObject.connect( prefs, QtCore.SIGNAL( 'triggered()' ), self.prefsDialog )
+        if ( not self.options.token is None ):
+            self.token_edit.setText( self.options.token )
 
-        file_ = self.mainwindow.menuBar().addMenu( '&File' )
-        file_.addAction( prefs )
-        file_.addAction( exit_ )
-
-        self.setStatus( 'http://www.eve-metrics.com/' )
-
+        self.mainwindow.setCentralWidget( self.tabs )
         self.mainwindow.show()
         self.mainwindow.raise_()
-
-#        # tabs
-#        self.tabs = QtGui.QTabWidget()
-#        self.tabs.addTab( self.status, 'Activity' )
-#
-#        self.preferences = QtGui.QPlainTextEdit()
-#        self.preferences.setReadOnly( True )
-#        self.preferences.appendPlainText( 'Preferences dialog' )
-#        self.tabs.addTab( self.preferences, 'Preferences' )
-#
-#        self.mainwindow.setCentralWidget( self.tabs )
-#        self.mainwindow.show()
-#        self.mainwindow.raise_()
 
         print 'Eve Metrics uploader started'
 
@@ -203,7 +198,7 @@ if ( __name__ == '__main__' ):
             traceback.print_exc()            
             print 'There was a problem with the PyQt backend. Running in text mode.'
         else:
-            gui = GUI( monitor, args )
+            gui = GUI( monitor, options, args )
             gui.Run()
 
     if ( options.token is None or options.path is None ):
