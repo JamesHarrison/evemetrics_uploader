@@ -92,6 +92,14 @@ class GUI( object ):
         self.status = None
         self.stdout_line = ''
 
+        self.app = None
+        self.mainwindow = None
+        self.status = None
+        self.timer = None
+
+    def setStatus( self, msg ):
+        self.mainwindow.statusBar().showMessage( msg )        
+
     def monkeypatch_write( self, str ):
         sys.__stdout__.write( str )
         # appendPlainText inserts \n for each call, compensate
@@ -107,16 +115,53 @@ class GUI( object ):
     def Run( self ):
         self.app = QtGui.QApplication( self.args )
 
+        # setup FS scan loop
+        self.timer = QtCore.QTimer()
+        QtCore.QObject.connect( self.timer, QtCore.SIGNAL( 'timeout()' ), self.monitor.Scan )
+        self.timer.start( float( options.poll ) * 1000 )
+
+        # setup status log widget
+        self.mainwindow = QtGui.QMainWindow()
+        self.mainwindow.setWindowTitle( 'EvE Metrics uploader' )
+
         self.status = QtGui.QPlainTextEdit()
         self.status.setReadOnly( True )
-        self.status.show()
-        self.status.raise_()
-
         sys.stdout = stdout_wrap( self.monkeypatch_write )
 
-        self.timer = QtCore.QTimer()
-        QtCore.QObject.connect( self.timer, QtCore.SIGNAL("timeout()"), self.monitor.Scan )
-        self.timer.start( float( options.poll ) * 1000 )
+        # menu strategy
+        self.mainwindow.setCentralWidget( self.status )
+
+        exit_ = QtGui.QAction( QtGui.QIcon( 'icons/exit.png' ), 'Quit', self.mainwindow )
+        exit_.setShortcut( 'Ctrl+Q' )
+        exit_.setStatusTip( 'Quit' )
+        QtCore.QObject.connect( exit_, QtCore.SIGNAL( 'triggered()' ), self.mainwindow, QtCore.SLOT( 'close()' ) )
+
+        prefs = QtGui.QAction( QtGui.QIcon( 'icons/prefs.png' ), 'Prefs', self.mainwindow )
+        prefs.setShortcut( 'Ctrl+P' )
+        prefs.setStatusTip( 'Preferences' )
+#        QtCore.QObject.connect( prefs, QtCore.SIGNAL( 'triggered()' ), self.prefsDialog )
+
+        file_ = self.mainwindow.menuBar().addMenu( '&File' )
+        file_.addAction( prefs )
+        file_.addAction( exit_ )
+
+        self.setStatus( 'http://www.eve-metrics.com/' )
+
+        self.mainwindow.show()
+        self.mainwindow.raise_()
+
+#        # tabs
+#        self.tabs = QtGui.QTabWidget()
+#        self.tabs.addTab( self.status, 'Activity' )
+#
+#        self.preferences = QtGui.QPlainTextEdit()
+#        self.preferences.setReadOnly( True )
+#        self.preferences.appendPlainText( 'Preferences dialog' )
+#        self.tabs.addTab( self.preferences, 'Preferences' )
+#
+#        self.mainwindow.setCentralWidget( self.tabs )
+#        self.mainwindow.show()
+#        self.mainwindow.raise_()
 
         print 'Eve Metrics uploader started'
 
