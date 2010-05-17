@@ -50,8 +50,6 @@ class Win32FileMonitor( QThread ):
             )
             for action, file in results:
                 full_filename = os.path.join (self.gui.options.path, file)
-                print full_filename, action
-                self.processor.OnNewFile(full_filename)
-                #if (action == 1 or action == 3):
-                #    self.emit(QtCore.SIGNAL("fileChanged(QString)"), QtCore.QString(full_filename))
+                if (action == 1 or action == 3):
+                    self.emit(QtCore.SIGNAL("fileChanged(QString)"), QtCore.QString(full_filename))
 

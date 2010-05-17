@@ -64,10 +64,7 @@ class GUI( object ):
         self.mainwindow.statusBar().showMessage( msg )        
 
     def monkeypatch_write( self, str ):
-    	try:
-    		sys.__stdout__.write( str )
-    	except:
-    	    ""
+        sys.__stdout__.write( str )
         # appendPlainText inserts \n for each call, compensate
         self.stdout_line += str
         spl = self.stdout_line.split('\n')
@@ -82,15 +79,14 @@ class GUI( object ):
         
         fileName = QtGui.QFileDialog.getExistingDirectory( self.mainwindow, 'Select your EvE directory (where eve.exe resides)' )
         
-    def processCacheFile( path ):
-        print "gogo"
-        
+    def processCacheFile( self, fileName ):
+        self.monitor.processor.OnNewFile(str(fileName))
+
     def Run( self ):
         self.app = QtGui.QApplication( self.args )
 
         if ( self.options.path ):
-            #QtCore.QObject.connect(self.monitor, QtCore.SIGNAL("fileChanged(QString)"), self.processCacheFile)
-
+            QtCore.QObject.connect(self.monitor, QtCore.SIGNAL("fileChanged(QString)"), self.processCacheFile)
             self.monitor.Run(self)
             
         # setup status log widget
