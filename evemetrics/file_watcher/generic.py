@@ -1,7 +1,10 @@
 import sys, os, time, traceback
-
-class FileMonitor( object ):
+from PyQt4 import QtCore
+from PyQt4 import QtGui
+from PyQt4.QtCore import QThread
+class FileMonitor( QThread ):
     def __init__( self, processor ):
+        QThread.__init__(self, None)
         self.processor = processor
         self.tree = None
         self.path = None
@@ -39,12 +42,9 @@ class FileMonitor( object ):
         self.tree = tree
         print '%d files' % len( self.tree )
 
-    def Run( self, poll ):
-        # first call is a no-op initializing the list
-        self.Scan()
-        while ( True ):
-            try:
-                self.Scan()
-            except:
-                traceback.print_exc()
-            time.sleep( poll )
+    def Run( self, gui, path):
+        # just poll when the directory changed
+        self.watcher = QtCore.QFileSystemWatcher(gui)
+        self.watcher.addPath(path)
+        print "running"
+        QtCore.QObject.connect(self.watcher,QtCore.SIGNAL("directoryChanged(const QString&)"), self.Scan)

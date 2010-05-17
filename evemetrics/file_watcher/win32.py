@@ -19,13 +19,14 @@ class Win32FileMonitor( QThread ):
     # note: last modification time could work too, but I'm less trusting of the portability/reliability of that approach
     def Scan( self ):
         return None
-    def Run( self, gui ):
+    def Run( self, gui, path ):
         self.gui = gui
+        self.path = path
         self.start()
 
     def run( self ):
         hDir = win32file.CreateFile (
-            self.gui.options.path,
+            self.path,
             0x0001,
             win32con.FILE_SHARE_READ | win32con.FILE_SHARE_WRITE,
             None,
@@ -49,7 +50,7 @@ class Win32FileMonitor( QThread ):
                 None
             )
             for action, file in results:
-                full_filename = os.path.join (self.gui.options.path, file)
+                full_filename = os.path.join (self.path, file)
                 if (action == 1 or action == 3):
                     self.emit(QtCore.SIGNAL("fileChanged(QString)"), QtCore.QString(full_filename))
 

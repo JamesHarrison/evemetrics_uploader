@@ -14,6 +14,8 @@ class Processor( object ):
 
     def OnNewFile( self, pathname ):
         try:
+            if ( pathname.__class__ == QtCore.QString ):
+                pathname = str(pathname)
             print 'New or modified file: %s' % pathname
             if ( os.path.splitext( pathname )[1] != '.cache' ):
                 print 'Not .cache, skipping'
@@ -87,7 +89,7 @@ class GUI( object ):
 
         if ( self.options.path ):
             QtCore.QObject.connect(self.monitor, QtCore.SIGNAL("fileChanged(QString)"), self.processCacheFile)
-            self.monitor.Run(self)
+            self.monitor.Run(self, self.options.path)
             
         # setup status log widget
         self.mainwindow = QtGui.QMainWindow()
@@ -146,31 +148,38 @@ if ( __name__ == '__main__' ):
     upload_client = uploader.Uploader()
     upload_client.set_token( options.token )
     processor = Processor( upload_client )
-    qtAvailable = False
 
-    if ( options.gui ):
-        try:
-            print 'Starting up GUI subsystem'
-            from PyQt4 import QtCore
-            from PyQt4 import QtGui
-        except:
-            traceback.print_exc()            
-            print 'There was a problem with the PyQt backend. Running in text mode.'
-        else:
-            qtAvailable = True
+    try:
+        #print 'Starting up GUI subsystem'
+        from PyQt4 import QtCore
+        from PyQt4 import QtGui
+    except:
+        traceback.print_exc()            
+        print 'There was a problem with the PyQt backend.'
+        exit
 
-    if (qtAvailable ):
+
+
+    if ( os.name == 'nt' ):
         #from evemetrics.file_watcher.qt import QtFileMonitor
         from evemetrics.file_watcher.win32 import Win32FileMonitor
         monitor = Win32FileMonitor( processor )
         monitor.path = options.path
+    else:
+        from evemetrics.file_watcher.generic import FileMonitor
+        monitor = FileMonitor( processor )
+        monitor.path = options.path
+        
+    if ( options.gui ):
         gui = GUI( monitor, options, args )
         gui.Run()
     else:
-        monitor = FileMonitor( processor )
-        monitor.path = options.path
-        monitor.Run( float( options.poll ) )
-
+        import signal
+        app = QtCore.QCoreApplication(args)
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+        QtCore.QObject.connect(monitor, QtCore.SIGNAL("fileChanged(QString)"), monitor.processor.OnNewFile )
+        monitor.Run(app, options.path)
+        app.exec_()
     if ( not options.gui and options.token is None or options.path is None ):
         raise Exception( 'Insufficient command line data' )
 
