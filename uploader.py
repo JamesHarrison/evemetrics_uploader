@@ -39,9 +39,15 @@ class PollMonitor( object ):
         self.processor = processor
         self.tree = None
         self.path = None
-
+        self.last_run = time.time()
+        
     # note: last modification time could work too, but I'm less trusting of the portability/reliability of that approach
     def Scan( self ):
+        # QFileSystemWatcher is emitting three signals in a row, we need to throttle a bit ...
+        if ( time.time() - self.last_run  < 1 ):
+            return
+        self.last_run = time.time()
+        
         if ( self.path is None ):
             print 'Path is not defined'
             return
@@ -96,7 +102,7 @@ class GUI( object ):
         self.app = None
         self.mainwindow = None
         self.status = None
-        self.timer = None
+        self.watcher = None
 
         self.token_edit = None
         self.path_edit = None
@@ -105,7 +111,10 @@ class GUI( object ):
         self.mainwindow.statusBar().showMessage( msg )        
 
     def monkeypatch_write( self, str ):
-        sys.__stdout__.write( str )
+    	try:
+    		sys.__stdout__.write( str )
+    	except:
+    	    ""
         # appendPlainText inserts \n for each call, compensate
         self.stdout_line += str
         spl = self.stdout_line.split('\n')
@@ -120,15 +129,18 @@ class GUI( object ):
         
         fileName = QtGui.QFileDialog.getExistingDirectory( self.mainwindow, 'Select your EvE directory (where eve.exe resides)' )
         
+    def setupDirectoryWatcher( self ):
+        # just poll when the directory changed
+        self.watcher = QtCore.QFileSystemWatcher(self.mainwindow)
+        self.watcher.addPath(self.options.path)
+        QtCore.QObject.connect(self.watcher,QtCore.SIGNAL("directoryChanged(const QString&)"), self.monitor.Scan)
 
+        
     def Run( self ):
         self.app = QtGui.QApplication( self.args )
 
-        # setup FS scan loop
-        self.timer = QtCore.QTimer()
-        QtCore.QObject.connect( self.timer, QtCore.SIGNAL( 'timeout()' ), self.monitor.Scan )
-        self.timer.start( float( options.poll ) * 1000 )
-
+        if ( self.options.path ):
+            self.setupDirectoryWatcher()
         # setup status log widget
         self.mainwindow = QtGui.QMainWindow()
         self.mainwindow.setWindowTitle( 'EvE Metrics uploader' )
@@ -200,8 +212,10 @@ if ( __name__ == '__main__' ):
         else:
             gui = GUI( monitor, options, args )
             gui.Run()
+    else:
+        monitor.Run( float( options.poll ) )
 
-    if ( options.token is None or options.path is None ):
+    if ( not options.gui and options.token is None or options.path is None ):
         raise Exception( 'Insufficient command line data' )
 
-    monitor.Run( float( options.poll ) )
+    
