@@ -6,6 +6,7 @@ from optparse import OptionParser
 from cmdline import ParseWithFile
 
 from evemetrics import parser, uploader
+from evemetrics.file_watcher.generic import FileMonitor
 
 class Processor( object ):
     def __init__( self, upload_client ):
@@ -34,54 +35,6 @@ class Processor( object ):
         else:
             print ret
 
-class PollMonitor( object ):
-    def __init__( self, processor ):
-        self.processor = processor
-        self.tree = None
-        self.path = None
-        self.last_run = time.time()
-        
-    # note: last modification time could work too, but I'm less trusting of the portability/reliability of that approach
-    def Scan( self ):
-        # QFileSystemWatcher is emitting three signals in a row, we need to throttle a bit ...
-        if ( time.time() - self.last_run  < 1 ):
-            return
-        self.last_run = time.time()
-        
-        if ( self.path is None ):
-            print 'Path is not defined'
-            return
-        tree = set()
-        for root, dirs, files in os.walk( self.path ):
-            for fi in files:
-                fn = os.path.join( self.path, root, fi )
-                # skip != .cache early to minimize work
-                if ( os.path.splitext( fn )[1] != '.cache' ):
-                    continue
-                tree.add( ( fn, os.stat( fn ).st_mtime ) )
-        if ( self.tree is None ):
-            self.tree = tree
-            return
-        # see what new files may have been added
-        new = tree.difference( self.tree )
-        if ( len( new ) != 0 ):
-#            pprint.pprint( new )
-            for fn in new:
-                fpn = os.path.join( self.path, fn[0] )
-#                pprint.pprint( fpn )
-                self.processor.OnNewFile( fpn )
-        self.tree = tree
-        print '%d files' % len( self.tree )
-
-    def Run( self, poll ):
-        # first call is a no-op initializing the list
-        self.Scan()
-        while ( True ):
-            try:
-                self.Scan()
-            except:
-                traceback.print_exc()
-            time.sleep( poll )
 
 class stdout_wrap( object ):
     def __init__( self, relay ):
@@ -129,18 +82,17 @@ class GUI( object ):
         
         fileName = QtGui.QFileDialog.getExistingDirectory( self.mainwindow, 'Select your EvE directory (where eve.exe resides)' )
         
-    def setupDirectoryWatcher( self ):
-        # just poll when the directory changed
-        self.watcher = QtCore.QFileSystemWatcher(self.mainwindow)
-        self.watcher.addPath(self.options.path)
-        QtCore.QObject.connect(self.watcher,QtCore.SIGNAL("directoryChanged(const QString&)"), self.monitor.Scan)
-
+    def processCacheFile( path ):
+        print "gogo"
         
     def Run( self ):
         self.app = QtGui.QApplication( self.args )
 
         if ( self.options.path ):
-            self.setupDirectoryWatcher()
+            #QtCore.QObject.connect(self.monitor, QtCore.SIGNAL("fileChanged(QString)"), self.processCacheFile)
+
+            self.monitor.Run(self)
+            
         # setup status log widget
         self.mainwindow = QtGui.QMainWindow()
         self.mainwindow.setWindowTitle( 'EvE Metrics uploader' )
@@ -157,7 +109,7 @@ class GUI( object ):
         self.token_edit = QtGui.QLineEdit()
         prefs_layout.addRow( QtGui.QLabel( 'User Token:' ), self.token_edit )
         self.path_browse = QtGui.QPushButton( 'Change' )
-        QtCore.QObject.connect( self.path_browse, QtCore.SIGNAL( 'clicked()' ), self.browsePath )
+        self.app.connect( self.path_browse, QtCore.SIGNAL( 'clicked()' ), self.browsePath )
         prefs_layout.addRow( QtGui.QLabel( 'EvE cache path:' ), self.path_browse )
         prefs_widg = QtGui.QWidget()
         prefs_widg.setLayout( prefs_layout )
@@ -198,8 +150,7 @@ if ( __name__ == '__main__' ):
     upload_client = uploader.Uploader()
     upload_client.set_token( options.token )
     processor = Processor( upload_client )
-    monitor = PollMonitor( processor )
-    monitor.path = options.path
+    qtAvailable = False
 
     if ( options.gui ):
         try:
@@ -210,9 +161,18 @@ if ( __name__ == '__main__' ):
             traceback.print_exc()            
             print 'There was a problem with the PyQt backend. Running in text mode.'
         else:
-            gui = GUI( monitor, options, args )
-            gui.Run()
+            qtAvailable = True
+
+    if (qtAvailable ):
+        #from evemetrics.file_watcher.qt import QtFileMonitor
+        from evemetrics.file_watcher.win32 import Win32FileMonitor
+        monitor = Win32FileMonitor( processor )
+        monitor.path = options.path
+        gui = GUI( monitor, options, args )
+        gui.Run()
     else:
+        monitor = FileMonitor( processor )
+        monitor.path = options.path
         monitor.Run( float( options.poll ) )
 
     if ( not options.gui and options.token is None or options.path is None ):
