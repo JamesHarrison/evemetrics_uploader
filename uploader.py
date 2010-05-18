@@ -165,6 +165,10 @@ if ( __name__ == '__main__' ):
         from evemetrics.file_watcher.win32 import Win32FileMonitor
         monitor = Win32FileMonitor( processor )
         monitor.path = options.path
+    elif ( os.name == 'posix' ):
+        from evemetrics.file_watcher.posix import PosixFileMonitor
+        monitor = PosixFileMonitor( processor )
+        monitor.path = options.path
     else:
         from evemetrics.file_watcher.generic import FileMonitor
         monitor = FileMonitor( processor )
@@ -180,6 +184,7 @@ if ( __name__ == '__main__' ):
         QtCore.QObject.connect(monitor, QtCore.SIGNAL("fileChanged(QString)"), monitor.processor.OnNewFile )
         monitor.Run(app, options.path)
         app.exec_()
+        
     if ( not options.gui and options.token is None or options.path is None ):
         raise Exception( 'Insufficient command line data' )
 
