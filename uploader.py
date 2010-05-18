@@ -6,7 +6,9 @@ from optparse import OptionParser
 from cmdline import ParseWithFile
 
 from evemetrics import parser, uploader
+
 from evemetrics.file_watcher.generic import FileMonitor
+from evemetrics.file_watcher.factory import MonitorFactory
 
 class Processor( object ):
     def __init__( self, upload_client ):
@@ -44,10 +46,11 @@ class stdout_wrap( object ):
 
     def write( self, str ):
         self.relay( str )
-
-class GUI( object ):
-    def __init__( self, monitor, options, args ):
+        
+class Uploader ( object ):
+    def __init__( self, monitor, processor, options, args ):
         self.monitor = monitor
+        self.processor = processor
         self.options = options
         self.args = args
         self.app = None
@@ -61,6 +64,21 @@ class GUI( object ):
 
         self.token_edit = None
         self.path_edit = None
+
+    def processCacheFile( self, fileName ):
+        self.processor.OnNewFile(str(fileName))
+
+class Console ( Uploader ):
+    def Run( self ):
+        import signal
+        self.app = QtCore.QCoreApplication(args)
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+        QtCore.QObject.connect(self.monitor, QtCore.SIGNAL("fileChanged(QString)"), self.processor.OnNewFile )
+        self.monitor.Run( self )
+        self.app.exec_()
+
+    
+class GUI( Uploader ):
 
     def setStatus( self, msg ):
         self.mainwindow.statusBar().showMessage( msg )        
@@ -78,18 +96,14 @@ class GUI( object ):
             self.stdout_line = spl[0]
 
     def browsePath( self ):
-        
         fileName = QtGui.QFileDialog.getExistingDirectory( self.mainwindow, 'Select your EvE directory (where eve.exe resides)' )
         
-    def processCacheFile( self, fileName ):
-        self.monitor.processor.OnNewFile(str(fileName))
-
     def Run( self ):
         self.app = QtGui.QApplication( self.args )
 
         if ( self.options.path ):
             QtCore.QObject.connect(self.monitor, QtCore.SIGNAL("fileChanged(QString)"), self.processCacheFile)
-            self.monitor.Run(self, self.options.path)
+            self.monitor.Run( self )
             
         # setup status log widget
         self.mainwindow = QtGui.QMainWindow()
@@ -148,43 +162,52 @@ if ( __name__ == '__main__' ):
     upload_client = uploader.Uploader()
     upload_client.set_token( options.token )
     processor = Processor( upload_client )
-
+    monitor = False
+    fallback = False
     try:
-        #print 'Starting up GUI subsystem'
         from PyQt4 import QtCore
         from PyQt4 import QtGui
     except:
-        traceback.print_exc()            
+        traceback.print_exc()
         print 'There was a problem with the PyQt backend.'
         exit
 
 
-
     if ( os.name == 'nt' ):
-        #from evemetrics.file_watcher.qt import QtFileMonitor
-        from evemetrics.file_watcher.win32 import Win32FileMonitor
-        monitor = Win32FileMonitor( processor )
-        monitor.path = options.path
+        try:
+            from evemetrics.file_watcher.win32 import Win32FileMonitor
+            monitor = MonitorFactory( Win32FileMonitor )
+            monitor.path = options.path
+        except ImportError, e:
+            traceback.print_exc()
+            print "Could not load the non blocking file monitor."
+            fallback = True
     elif ( os.name == 'posix' ):
-        from evemetrics.file_watcher.posix import PosixFileMonitor
-        monitor = PosixFileMonitor( processor )
-        monitor.path = options.path
-    else:
+        try:
+            from evemetrics.file_watcher.posix import PosixFileMonitor
+            monitor = MonitorFactory( PosixFileMonitor )
+            monitor.path = options.path
+        except ImportError, e:
+            traceback.print_exc()
+            print "Could not load the non blocking file monitor. Check your pyinotify installation."
+            fallback = True
+    
+    if ( not monitor or fallback ):
         from evemetrics.file_watcher.generic import FileMonitor
-        monitor = FileMonitor( processor )
+        monitor = MonitorFactory( FileMonitor )
         monitor.path = options.path
-        
+        for child in monitor.children:
+            child.Scan()
+    
     if ( options.gui ):
-        gui = GUI( monitor, options, args )
+        print 'Starting up GUI subsystem'
+        gui = GUI( monitor, processor, options, args )
         gui.Run()
     else:
-        import signal
-        app = QtCore.QCoreApplication(args)
-        signal.signal(signal.SIGINT, signal.SIG_DFL)
-        QtCore.QObject.connect(monitor, QtCore.SIGNAL("fileChanged(QString)"), monitor.processor.OnNewFile )
-        monitor.Run(app, options.path)
-        app.exec_()
-        
+        print 'Starting up console subsystem'
+        console = Console ( monitor, processor, options, args )        
+        console.Run()
+
     if ( not options.gui and options.token is None or options.path is None ):
         raise Exception( 'Insufficient command line data' )
 

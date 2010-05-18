@@ -2,21 +2,26 @@ import sys, os, time, traceback
 from PyQt4 import QtCore
 from PyQt4 import QtGui
 from PyQt4.QtCore import QThread
+
 class FileMonitor( QThread ):
-    def __init__( self, processor ):
+    def __init__( self, factory ):
         QThread.__init__(self, None)
-        self.processor = processor
         self.tree = None
         self.path = None
-        self.last_run = time.time()
-        
+        self.last_run = None
+        self.factory = factory
+
+    @classmethod
+    def BaseCachePath( cls ):
+        return os.environ['LOCALAPPDATA']  + "\\CCP\\\EVE\\"
+
     # note: last modification time could work too, but I'm less trusting of the portability/reliability of that approach
     def Scan( self ):
         # QFileSystemWatcher is emitting three signals in a row, we need to throttle a bit ...
-        if ( time.time() - self.last_run  < 1 ):
+        if ( self.last_run and time.time() - self.last_run  < 1 ):
             return
         self.last_run = time.time()
-        
+
         if ( self.path is None ):
             print 'Path is not defined'
             return
@@ -38,13 +43,16 @@ class FileMonitor( QThread ):
             for fn in new:
                 fpn = os.path.join( self.path, fn[0] )
 #                pprint.pprint( fpn )
-                self.processor.OnNewFile( fpn )
+                self.factory.emit(QtCore.SIGNAL("fileChanged(QString)"), QtCore.QString(fpn))
         self.tree = tree
         print '%d files' % len( self.tree )
 
-    def Run( self, gui, path):
+    def Run( self ):
         # just poll when the directory changed
-        self.watcher = QtCore.QFileSystemWatcher(gui)
-        self.watcher.addPath(path)
-        print "running"
+        self.watcher = QtCore.QFileSystemWatcher( )
+        self.watcher.addPath( self.path )
         QtCore.QObject.connect(self.watcher,QtCore.SIGNAL("directoryChanged(const QString&)"), self.Scan)
+        self.Scan()
+        self.start()
+    
+
