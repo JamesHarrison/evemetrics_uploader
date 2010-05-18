@@ -1,4 +1,5 @@
-import sys, os, time, traceback
+import sys, os, time, traceback, platform
+
 from PyQt4 import QtCore
 from PyQt4 import QtGui
 from PyQt4.QtCore import QThread
@@ -13,7 +14,11 @@ class FileMonitor( QThread ):
 
     @classmethod
     def BaseCachePath( cls ):
-        return os.environ['LOCALAPPDATA']  + "\\CCP\\\EVE\\"
+        if ( platform.system() == 'Windows' ):
+            return os.environ['LOCALAPPDATA']  + "\\CCP\\\EVE\\"
+        elif ( platform.system() == 'Linux' ):
+            return os.path.expanduser( '~/.wine/drive_c/users/Public/Application Data/CCP/EVE/' )
+        raise Exception( 'TODO: BaseCachePath for %s' % platform.system() )
 
     # note: last modification time could work too, but I'm less trusting of the portability/reliability of that approach
     def Scan( self ):

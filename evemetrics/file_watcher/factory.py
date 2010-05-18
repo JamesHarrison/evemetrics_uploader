@@ -1,9 +1,11 @@
-import sys, os, time, traceback
+import sys, os, time, traceback, platform
+
 from PyQt4 import QtCore
 from PyQt4.QtCore import QThread
 from .generic import FileMonitor
 
 class MonitorFactory( QThread ):
+    
     def __init__( self, monitorClass ):
         QThread.__init__(self, None)
         self.valid_paths = []
@@ -19,12 +21,12 @@ class MonitorFactory( QThread ):
                 for machnonet_version in os.listdir(ndir):
                     if ( int(machnonet_version) >= 235 ):
                         self.valid_paths.append( os.path.join( os.path.join(ndir, machnonet_version), "CachedMethodCalls" ) )
-            except WindowsError, e:
+            except OSError, e:
                 pass
-    
     
     def Scan( self ):
         return None
+    
     def Run( self, gui ):
         self.gui = gui
         self.path = gui.options.path
