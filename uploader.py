@@ -68,6 +68,9 @@ class Console( object ):
         self.app.exec_()
 
 class GUI( object ):
+    def __init__( self, config ):
+        self.config = config
+        self.stdout_line = ""
 
     def setStatus( self, msg ):
         self.mainwindow.statusBar().showMessage( msg )        
@@ -88,12 +91,16 @@ class GUI( object ):
         fileName = QtGui.QFileDialog.getExistingDirectory( self.mainwindow, 'Select your EvE directory (where eve.exe resides)' )
         
     def Run( self ):
-        self.app = QtGui.QApplication( self.args )
+        self.app = QtGui.QApplication( [] )
 
-        if ( self.options.path ):
-            QtCore.QObject.connect( self.monitor, QtCore.SIGNAL( "fileChanged(QString)" ), self.processCacheFile )
-            self.monitor.Run( self )
-            
+        self.monitor = self.config.createMonitor()
+
+        if ( self.monitor is None ):
+            pass
+            # Here we should show a config wizzard or something
+        else:
+            self.monitor.Run()
+
         # setup status log widget
         self.mainwindow = QtGui.QMainWindow()
         self.mainwindow.setWindowTitle( 'EvE Metrics uploader' )
@@ -116,8 +123,8 @@ class GUI( object ):
         prefs_widg.setLayout( prefs_layout )
         self.tabs.addTab( prefs_widg, 'Preferences' )
 
-        if ( not self.options.token is None ):
-            self.token_edit.setText( self.options.token )
+        if ( not self.config.options.token is None ):
+            self.token_edit.setText( self.config.options.token )
 
         self.mainwindow.setCentralWidget( self.tabs )
         self.mainwindow.show()
@@ -198,7 +205,8 @@ class Configuration( object ):
 
         # we can instanciate the filesystem monitor
         monitor = None
-        if ( platform.system() == 'Windows' ):
+        if ( False and platform.system() == 'Windows' ):
+            print "Loading the Win32FileMonitor"
             try:
                 from evemetrics.file_watcher.win32 import Win32FileMonitor
                 monitor = MonitorFactory( Win32FileMonitor, cache_folders )
@@ -206,15 +214,17 @@ class Configuration( object ):
                 traceback.print_exc()
                 print "Could not load the win32 optimized file monitor."
         elif ( platform.system() == 'Linux' ):
-#            try:
-#                from evemetrics.file_watcher.posix import PosixFileMonitor
-#                monitor = MonitorFactory( PosixFileMonitor, cache_folders )
-#            except ImportError, e:
-#                traceback.print_exc()
-#                print "Could not load the non blocking file monitor. Check your pyinotify installation."
+            print "Loading the PosixFileMonitor"
+            try:
+                from evemetrics.file_watcher.posix import PosixFileMonitor
+                monitor = MonitorFactory( PosixFileMonitor, cache_folders )
+            except ImportError, e:
+                traceback.print_exc()
+                print "Could not load the non blocking file monitor. Check your pyinotify installation."
             pass
 
         if ( monitor is None ):
+            print "Loading the GenericFileMonitor"
             from evemetrics.file_watcher.generic import FileMonitor
             monitor = MonitorFactory( FileMonitor, cache_folders )
 
@@ -242,11 +252,10 @@ if ( __name__ == '__main__' ):
 
     config = Configuration()
 
-# FIXME: need to update the GUI to match
-#    if ( config.options.gui ):
-#        gui = GUI( config )
-#        gui.Run()
-#        sys.exit( 0 )
-
-    console = Console( config )
-    console.Run()
+    if ( config.options.gui ):
+        gui = GUI( config )
+        gui.Run()
+        sys.exit( 0 )
+    else:
+        console = Console( config )
+        console.Run()

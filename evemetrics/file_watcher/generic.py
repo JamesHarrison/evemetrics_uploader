@@ -41,16 +41,12 @@ class FileMonitor( QThread ):
 
     # this is our code asking the threads to start
     def Run( self ):
+        self.Scan() # prime the tree
+        self.watcher = QtCore.QFileSystemWatcher( )
+        self.watcher.addPath( self.path )
+        QtCore.QObject.connect(self.watcher,QtCore.SIGNAL("directoryChanged(const QString&)"), self.Scan)
         self.start()
-
+        
     def __del__( self ):
         self.exiting = True
         self.wait()
-
-    # this is the thread's execution loop
-    def run( self ):
-        self.Scan() # prime the tree
-        while not self.exiting:
-            # FIXME: expose the options and wait the right amount of time
-            time.sleep( 30 )
-            self.Scan()
