@@ -28,7 +28,9 @@ def parse(filepath):
     for order in (orders[0]+orders[1]):
       w.writerow([
         order.price, order.volRemaining, order.typeID, order.range, order.orderID, 
-        order.volEntered, order.minVolume, order.bid, wintime_to_datetime(order.issued).strftime("%Y-%m-%d %H:%M:%S"), order.duration,
+        order.volEntered, order.minVolume, order.bid,
+        wintime_to_datetime(order.issued).strftime("%Y-%m-%d %H:%M:%S"),
+        order.duration,
         order.stationID, order.regionID, order.solarSystemID, order.jumps, 'cache'
       ])
   else:

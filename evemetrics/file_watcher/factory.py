@@ -6,34 +6,22 @@ from .generic import FileMonitor
 
 class MonitorFactory( QThread ):
     
-    def __init__( self, monitorClass ):
-        QThread.__init__(self, None)
-        self.valid_paths = []
+    def __init__( self, monitorClass, valid_paths ):
+        QThread.__init__( self )
+        self.processor = None
+        self.valid_paths = valid_paths
         self.monitorClass = monitorClass
-        self.GuessCachePaths( self.monitorClass.BaseCachePath() )
         self.children = []
+        for path in self.valid_paths:
+            # the children emit signals to this factor to communicate back changes
+            self.children.append( self.monitorClass( self, path ) )
 
-    def GuessCachePaths( self, baseCachePath ):
-        print baseCachePath
-        for installation in os.listdir(baseCachePath):
-            ndir = os.path.join(baseCachePath,installation) + "\cache\MachoNet\87.237.38.200"
-            try:
-                for machnonet_version in os.listdir(ndir):
-                    if ( int(machnonet_version) >= 235 ):
-                        self.valid_paths.append( os.path.join( os.path.join(ndir, machnonet_version), "CachedMethodCalls" ) )
-            except OSError, e:
-                pass
-    
-    def Scan( self ):
-        return None
-    
-    def Run( self, gui ):
-        self.gui = gui
-        self.path = gui.options.path
-        if ( len(self.valid_paths) > 0 ):
-            for path in self.valid_paths:
-                print "Monitoring: ", path
-                monitor = self.monitorClass( self )
-                self.children.append( monitor )
-                monitor.path = path
-                monitor.Run()
+    def Run( self ):
+        for child in self.children:
+            child.Run()
+
+    def setProcessor( self, processor ):
+        self.processor = processor
+        # NOTE: since the children are each their own thread, are we risking re-entrant calls into the processing?
+        signal_established = QtCore.QObject.connect( self, QtCore.SIGNAL( "fileChanged(QString)" ), processor.OnNewFile )
+        assert( signal_established )

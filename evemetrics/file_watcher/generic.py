@@ -5,28 +5,15 @@ from PyQt4 import QtGui
 from PyQt4.QtCore import QThread
 
 class FileMonitor( QThread ):
-    def __init__( self, factory ):
-        QThread.__init__(self, None)
-        self.tree = None
-        self.path = None
-        self.last_run = None
+    def __init__( self, factory, path ):
+        QThread.__init__( self )
         self.factory = factory
-
-    @classmethod
-    def BaseCachePath( cls ):
-        if ( platform.system() == 'Windows' ):
-            return os.environ['LOCALAPPDATA']  + "\\CCP\\\EVE\\"
-        elif ( platform.system() == 'Linux' ):
-            return os.path.expanduser( '~/.wine/drive_c/users/Public/Application Data/CCP/EVE/' )
-        raise Exception( 'TODO: BaseCachePath for %s' % platform.system() )
+        self.path = path
+        self.exiting = False
+        self.tree = None
 
     # note: last modification time could work too, but I'm less trusting of the portability/reliability of that approach
     def Scan( self ):
-        # QFileSystemWatcher is emitting three signals in a row, we need to throttle a bit ...
-        if ( self.last_run and time.time() - self.last_run  < 1 ):
-            return
-        self.last_run = time.time()
-
         if ( self.path is None ):
             print 'Path is not defined'
             return
@@ -52,12 +39,18 @@ class FileMonitor( QThread ):
         self.tree = tree
         print '%d files' % len( self.tree )
 
+    # this is our code asking the threads to start
     def Run( self ):
-        # just poll when the directory changed
-        self.watcher = QtCore.QFileSystemWatcher( )
-        self.watcher.addPath( self.path )
-        QtCore.QObject.connect(self.watcher,QtCore.SIGNAL("directoryChanged(const QString&)"), self.Scan)
-        self.Scan()
         self.start()
-    
 
+    def __del__( self ):
+        self.exiting = True
+        self.wait()
+
+    # this is the thread's execution loop
+    def run( self ):
+        self.Scan() # prime the tree
+        while not self.exiting:
+            # FIXME: expose the options and wait the right amount of time
+            time.sleep( 30 )
+            self.Scan()

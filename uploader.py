@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, os, time, traceback, pprint
+import sys, os, time, traceback, pprint, signal, platform
 
 from optparse import OptionParser
 from cmdline import ParseWithFile
@@ -15,12 +15,13 @@ class Processor( object ):
         self.upload_client = upload_client
 
     def OnNewFile( self, pathname ):
+        print 'OnNewFile: %r' % pathname
         try:
             if ( pathname.__class__ == QtCore.QString ):
-                pathname = str(pathname)
+                pathname = str( pathname )
             print 'New or modified file: %s' % pathname
             if ( os.path.splitext( pathname )[1] != '.cache' ):
-                print 'Not .cache, skipping'
+                print 'Not a .cache, skipping'
                 return
             try:
                 parsed_data = parser.parse( pathname )
@@ -39,7 +40,6 @@ class Processor( object ):
         else:
             print ret
 
-
 class stdout_wrap( object ):
     def __init__( self, relay ):
         self.relay = relay
@@ -47,38 +47,27 @@ class stdout_wrap( object ):
     def write( self, str ):
         self.relay( str )
         
-class Uploader ( object ):
-    def __init__( self, monitor, processor, options, args ):
-        self.monitor = monitor
-        self.processor = processor
-        self.options = options
-        self.args = args
-        self.app = None
-        self.status = None
-        self.stdout_line = ''
+class Console( object ):
+    def __init__( self, config ):
+        self.config = config
 
-        self.app = None
-        self.mainwindow = None
-        self.status = None
-        self.watcher = None
-
-        self.token_edit = None
-        self.path_edit = None
-
-    def processCacheFile( self, fileName ):
-        self.processor.OnNewFile(str(fileName))
-
-class Console ( Uploader ):
     def Run( self ):
-        import signal
-        self.app = QtCore.QCoreApplication(args)
-        signal.signal(signal.SIGINT, signal.SIG_DFL)
-        QtCore.QObject.connect(self.monitor, QtCore.SIGNAL("fileChanged(QString)"), self.processor.OnNewFile )
-        self.monitor.Run( self )
+        self.monitor = self.config.createMonitor()
+
+        if ( self.monitor is None ):
+            print 'Incorrect or insufficient command line options for headless operation.'
+            return
+
+        self.app = QtCore.QCoreApplication( [] )
+
+        # so Ctrl-C works
+        signal.signal( signal.SIGINT, signal.SIG_DFL )
+
+        self.monitor.Run()
+
         self.app.exec_()
 
-    
-class GUI( Uploader ):
+class GUI( object ):
 
     def setStatus( self, msg ):
         self.mainwindow.statusBar().showMessage( msg )        
@@ -102,7 +91,7 @@ class GUI( Uploader ):
         self.app = QtGui.QApplication( self.args )
 
         if ( self.options.path ):
-            QtCore.QObject.connect(self.monitor, QtCore.SIGNAL("fileChanged(QString)"), self.processCacheFile)
+            QtCore.QObject.connect( self.monitor, QtCore.SIGNAL( "fileChanged(QString)" ), self.processCacheFile )
             self.monitor.Run( self )
             
         # setup status log widget
@@ -138,77 +127,126 @@ class GUI( Uploader ):
 
         sys.exit( self.app.exec_() )
 
+# this object has process lifespan:
+# - it is used to load/save/guess settings
+# - it is used to apply/change settings
+class Configuration( object ):
+
+    def __init__( self ):
+        # using cmdline helper module for disk backing
+        # pydoc ./cmdline.py
+        # defaults are handled separately with the cmdline module
+        defaults = { 'poll' : 10, 'gui' : True }
+        p = OptionParser()
+        # core
+        p.add_option( '-t', '--token', dest = 'token', help = 'EVE Metrics uploader token - see http://www.eve-metrics.com/downloads' )
+        p.add_option( '-p', '--path', dest = 'path', help = 'EVE cache path (top level directory)' )
+        # UI
+        p.add_option( '-n', '--nogui', action = 'store_false', dest = 'gui', help = 'Run in text mode' )
+        p.add_option( '-g', '--gui', action = 'store_true', dest = 'gui', help = 'Run in GUI mode (default)' )
+        # filesystem alteration monitoring
+        p.add_option( '-P', '--poll', dest = 'poll', help = 'Poll every n seconds (default %d)' % defaults['poll'] )
+
+        ( self.options, self.args ) = ParseWithFile( p, defaults, filename = 'eve_uploader.ini' )
+
+        print 'Current settings:'
+        print '  Token: %r' % self.options.token
+        print '  Path: %r' % self.options.path
+        print '  GUI: %r' % self.options.gui
+
+    # this returns a new monitor, processor, uploader chain based on current settings
+    # it will try to guess values if they are missing
+    # and will return the monitor if the setup is successful, or None
+    # this may be called several times during the lifespan of the process when settings are modified
+    def createMonitor( self ):
+        if ( self.options.token is None ):
+            # no point continuing without a valid token
+            return
+        
+        # the cache path can be explicitely set, if not we rely on autodetection
+        checkpath = self.options.path
+        if ( checkpath is None ):
+            print 'Looking for your EVE cache in the usual locations'
+            if ( platform.system() == 'Windows' ):
+                checkpath = os.path.join( os.environ['LOCALAPPDATA'], 'CCP', 'EVE' )
+            elif ( platform.system() == 'Linux' ):
+                # assuming a standard wine installation, and the same username in wine than local user..
+                checkpath = os.path.join( os.path.expanduser( '~/.wine/drive_c/users' ), os.environ['USER'], 'Local Settings/Application Data/CCP/EVE' )
+            elif ( platform.system() == 'Darwin' ):
+                checkpath = os.path.expanduser( '~/Library/Preferences/EVE Online Preferences/p_drive/Local Settings/Application Data/CCP/EVE' )
+        if ( not os.path.isdir( checkpath ) ):
+            print '%r doesn\'t exist. Cache path not found.' % checkpath
+            return
+
+        print 'Base cache path is %r' % checkpath
+        
+        # now build a list of the cache folders to monitor
+        cache_folders = []
+        for installation in os.listdir( checkpath ):
+            testdir = os.path.join( checkpath, installation, 'cache', 'MachoNet', '87.237.38.200', '235', 'CachedMethodCalls' )
+            if ( not os.path.isdir( testdir ) ):
+                continue
+            cache_folders.append( testdir )
+
+        if ( len( cache_folders ) == 0 ):
+            print 'Could not find any valid cache folders under the cache path %r - invalid cache path?' % checkpath
+            return
+
+        print 'Monitoring the following directory(es):'
+        for c in cache_folders:
+            print c
+
+        # we can instanciate the filesystem monitor
+        monitor = None
+        if ( platform.system() == 'Windows' ):
+            try:
+                from evemetrics.file_watcher.win32 import Win32FileMonitor
+                monitor = MonitorFactory( Win32FileMonitor, cache_folders )
+            except ImportError, e:
+                traceback.print_exc()
+                print "Could not load the win32 optimized file monitor."
+        elif ( platform.system() == 'Linux' ):
+#            try:
+#                from evemetrics.file_watcher.posix import PosixFileMonitor
+#                monitor = MonitorFactory( PosixFileMonitor, cache_folders )
+#            except ImportError, e:
+#                traceback.print_exc()
+#                print "Could not load the non blocking file monitor. Check your pyinotify installation."
+            pass
+
+        if ( monitor is None ):
+            from evemetrics.file_watcher.generic import FileMonitor
+            monitor = MonitorFactory( FileMonitor, cache_folders )
+
+        # the upload client
+        upload_client = uploader.Uploader()
+        upload_client.set_token( self.options.token )
+
+        # the processor only needs to know about the upload client
+        processor = Processor( upload_client )
+
+        # points the monitor to the processor, hooks up the signals
+        monitor.setProcessor( processor )
+
+        return monitor
+
 if ( __name__ == '__main__' ):
-    # using cmdline helper module for disk backing
-    # pydoc ./cmdline.py
-    # defaults are handled separately with the cmdline module
-    defaults = { 'poll' : 10, 'gui' : True }
-    p = OptionParser()
-    # core
-    p.add_option( '-t', '--token', dest = 'token', help = 'EVE Metrics uploader token - see http://www.eve-metrics.com/downloads' )
-    p.add_option( '-p', '--path', dest = 'path', help = 'EVE cache path' )
-    # UI
-    p.add_option( '-n', '--nogui', action = 'store_false', dest = 'gui', help = 'Run in text mode' )
-    p.add_option( '-g', '--gui', action = 'store_true', dest = 'gui', help = 'Run in GUI mode' )
-    # filesystem alteration monitoring
-    p.add_option( '-P', '--poll', dest = 'poll', help = 'Poll every n seconds (default %d)' % defaults['poll'] )
-
-    ( options, args ) = ParseWithFile( p, defaults, filename = 'eve_uploader.ini' )
-
-    print 'Token: %r' % options.token
-    print 'Path: %r' % options.path
-    print 'GUI: %r' % options.gui
-
-    upload_client = uploader.Uploader()
-    upload_client.set_token( options.token )
-    processor = Processor( upload_client )
-    monitor = False
-    fallback = False
+    # start by verifying PyQt presence
     try:
         from PyQt4 import QtCore
         from PyQt4 import QtGui
     except:
         traceback.print_exc()
         print 'There was a problem with the PyQt backend.'
-        exit
+        sys.exit( -1 )
 
+    config = Configuration()
 
-    if ( os.name == 'nt' ):
-        try:
-            from evemetrics.file_watcher.win32 import Win32FileMonitor
-            monitor = MonitorFactory( Win32FileMonitor )
-            monitor.path = options.path
-        except ImportError, e:
-            traceback.print_exc()
-            print "Could not load the non blocking file monitor."
-            fallback = True
-    elif ( os.name == 'posix' ):
-        try:
-            from evemetrics.file_watcher.posix import PosixFileMonitor
-            monitor = MonitorFactory( PosixFileMonitor )
-            monitor.path = options.path
-        except ImportError, e:
-            traceback.print_exc()
-            print "Could not load the non blocking file monitor. Check your pyinotify installation."
-            fallback = True
-    
-    if ( not monitor or fallback ):
-        from evemetrics.file_watcher.generic import FileMonitor
-        monitor = MonitorFactory( FileMonitor )
-        monitor.path = options.path
-        for child in monitor.children:
-            child.Scan()
-    
-    if ( options.gui ):
-        print 'Starting up GUI subsystem'
-        gui = GUI( monitor, processor, options, args )
-        gui.Run()
-    else:
-        print 'Starting up console subsystem'
-        console = Console ( monitor, processor, options, args )        
-        console.Run()
+# FIXME: need to update the GUI to match
+#    if ( config.options.gui ):
+#        gui = GUI( config )
+#        gui.Run()
+#        sys.exit( 0 )
 
-    if ( not options.gui and options.token is None or options.path is None ):
-        raise Exception( 'Insufficient command line data' )
-
-    
+    console = Console( config )
+    console.Run()
