@@ -80,6 +80,34 @@ def ParseWithFile( parser, defaults = None, filename = 'settings.ini', arguments
 
     return ( options, args )
 
+def SaveToFile( options, parser, defaults = None, filename = 'settings.ini' ):
+    """"Save back to file a set of options that have been modified by the application"""
+    # read settings
+    cfp = SafeConfigParser()
+    cfp.read( filename )
+
+    # complete options with data from settings
+    for option in parser.option_list:
+        if ( option.dest is None ):
+            continue # '--help' (special case)
+        option_name = option.dest
+        option_value = getattr( options, option_name )
+        if ( option_value is None ):
+            continue
+        # a value was passed on the command line
+        if ( ( defaults is None ) or ( not defaults.has_key( option_name ) ) ):
+            # no default is known for that value, always save to the config file
+            cfp.set( DEFAULTSECT, option_name, str( option_value ) )
+        else:
+            if ( defaults[ option_name ] != option_value ):
+                # save a different value than the default
+                cfp.set( DEFAULTSECT, option_name, str( option_value ) )
+            else:
+                # explicitely passing the default value means we should not store it
+                cfp.remove_option( DEFAULTSECT, option_name ) # will return False if no option exist
+    # write out the updated configuration
+    cfp.write( file( filename, 'w' ) )        
+
 class Test( unittest.TestCase ):
     """Unit Tests"""
 

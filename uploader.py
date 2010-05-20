@@ -3,7 +3,7 @@
 import sys, os, time, traceback, pprint, signal, platform
 
 from optparse import OptionParser
-from cmdline import ParseWithFile
+from cmdline import ParseWithFile, SaveToFile
 
 from evemetrics import parser, uploader
 
@@ -89,17 +89,31 @@ class GUI( object ):
 
     def browsePath( self ):
         fileName = QtGui.QFileDialog.getExistingDirectory( self.mainwindow, 'Select your EvE directory (where eve.exe resides)' )
+
+    def applyPrefs( self ):
+        # flip back to main tab
+        self.tabs.setCurrentIndex( 0 )
+        if ( not self.monitor is None ):
+            print 'Tearing down existing monitor'
+            self.monitor = None
+        print 'Applying settings'
+        self.config.options.token = str( self.token_edit.text() )
+        try:
+            self.monitor = self.config.createMonitor()
+            if ( not self.monitor is None ):
+                self.monitor.Run()
+        except:
+            traceback.print_exc()
+            self.monitor = None
+        else:
+            print 'Cache monitoring enabled.'
+            # write settings out to file for next run
+            self.config.saveSettings()
         
     def Run( self ):
         self.app = QtGui.QApplication( [] )
 
-        self.monitor = self.config.createMonitor()
-
-        if ( self.monitor is None ):
-            pass
-            # Here we should show a config wizzard or something
-        else:
-            self.monitor.Run()
+        # create all the GUI elements first
 
         # setup status log widget
         self.mainwindow = QtGui.QMainWindow()
@@ -116,12 +130,24 @@ class GUI( object ):
         prefs_layout = QtGui.QFormLayout()
         self.token_edit = QtGui.QLineEdit()
         prefs_layout.addRow( QtGui.QLabel( 'User Token:' ), self.token_edit )
-        self.path_browse = QtGui.QPushButton( 'Change' )
-        self.app.connect( self.path_browse, QtCore.SIGNAL( 'clicked()' ), self.browsePath )
-        prefs_layout.addRow( QtGui.QLabel( 'EvE cache path:' ), self.path_browse )
+# disable the cache browse for now - auto detection should suffice
+#        self.path_browse = QtGui.QPushButton( 'Change' )
+#        self.app.connect( self.path_browse, QtCore.SIGNAL( 'clicked()' ), self.browsePath )
+#        prefs_layout.addRow( QtGui.QLabel( 'EvE cache path:' ), self.path_browse )
         prefs_widg = QtGui.QWidget()
         prefs_widg.setLayout( prefs_layout )
-        self.tabs.addTab( prefs_widg, 'Preferences' )
+
+        top_prefs_layout = QtGui.QVBoxLayout()
+        top_prefs_layout.addWidget( QtGui.QLabel( 'Your upload token is available from\nhttp://www.eve-metrics.com/downloads' ) )
+        top_prefs_layout.addWidget( prefs_widg )
+        self.apply_prefs_button = QtGui.QPushButton( 'Apply' )
+        top_prefs_layout.addWidget( self.apply_prefs_button )
+        self.app.connect( self.apply_prefs_button, QtCore.SIGNAL( 'clicked()' ), self.applyPrefs )
+
+        top_prefs_widg = QtGui.QWidget()
+        top_prefs_widg.setLayout( top_prefs_layout )
+        
+        self.tabs.addTab( top_prefs_widg, 'Preferences' )
 
         if ( not self.config.options.token is None ):
             self.token_edit.setText( self.config.options.token )
@@ -130,7 +156,20 @@ class GUI( object ):
         self.mainwindow.show()
         self.mainwindow.raise_()
 
-        print 'Eve Metrics uploader started'
+        self.monitor = self.config.createMonitor()
+
+        if ( not self.monitor is None ):
+            try:
+                self.monitor.Run()
+            except:
+                traceback.print_exc()
+                self.monitor = None
+            else:
+                print 'Cache monitoring enabled.'
+        
+        if ( self.monitor is None ):
+            # bring the prefs tab to front to set the config
+            self.tabs.setCurrentIndex( 1 )
 
         sys.exit( self.app.exec_() )
 
@@ -143,23 +182,27 @@ class Configuration( object ):
         # using cmdline helper module for disk backing
         # pydoc ./cmdline.py
         # defaults are handled separately with the cmdline module
-        defaults = { 'poll' : 10, 'gui' : True }
-        p = OptionParser()
+        self.defaults = { 'poll' : 10, 'gui' : True }
+        self.parser = OptionParser()
         # core
-        p.add_option( '-t', '--token', dest = 'token', help = 'EVE Metrics uploader token - see http://www.eve-metrics.com/downloads' )
-        p.add_option( '-p', '--path', dest = 'path', help = 'EVE cache path (top level directory)' )
+        self.parser.add_option( '-t', '--token', dest = 'token', help = 'EVE Metrics uploader token - see http://www.eve-metrics.com/downloads' )
+        self.parser.add_option( '-p', '--path', dest = 'path', help = 'EVE cache path (top level directory)' )
         # UI
-        p.add_option( '-n', '--nogui', action = 'store_false', dest = 'gui', help = 'Run in text mode' )
-        p.add_option( '-g', '--gui', action = 'store_true', dest = 'gui', help = 'Run in GUI mode (default)' )
+        self.parser.add_option( '-n', '--nogui', action = 'store_false', dest = 'gui', help = 'Run in text mode' )
+        self.parser.add_option( '-g', '--gui', action = 'store_true', dest = 'gui', help = 'Run in GUI mode (default)' )
         # filesystem alteration monitoring
-        p.add_option( '-P', '--poll', dest = 'poll', help = 'Poll every n seconds (default %d)' % defaults['poll'] )
+        self.parser.add_option( '-P', '--poll', dest = 'poll', help = 'Poll every n seconds (default %d)' % self.defaults['poll'] )
 
-        ( self.options, self.args ) = ParseWithFile( p, defaults, filename = 'eve_uploader.ini' )
+        ( self.options, self.args ) = ParseWithFile( self.parser, self.defaults, filename = 'eve_uploader.ini' )
 
         print 'Current settings:'
         print '  Token: %r' % self.options.token
         print '  Path: %r' % self.options.path
         print '  GUI: %r' % self.options.gui
+
+    def saveSettings( self ):
+        SaveToFile( self.options, self.parser, self.defaults, filename = 'eve_uploader.ini' )
+        print 'Configuration saved'
 
     # this returns a new monitor, processor, uploader chain based on current settings
     # it will try to guess values if they are missing
@@ -167,6 +210,7 @@ class Configuration( object ):
     # this may be called several times during the lifespan of the process when settings are modified
     def createMonitor( self ):
         if ( self.options.token is None ):
+            print 'Upload token needs to be set.'
             # no point continuing without a valid token
             return
         
@@ -256,6 +300,6 @@ if ( __name__ == '__main__' ):
         gui = GUI( config )
         gui.Run()
         sys.exit( 0 )
-    else:
-        console = Console( config )
-        console.Run()
+
+    console = Console( config )
+    console.Run()
