@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 """
 Extend Python's command line parsing (OptionParser.optparse) to support persistent configuration on disk through ConfigParser.
+
+TODO: move the two functions to be methods on an object
+
+TODO: write tests for the no save and SaveToFile functionality
+(verify no save option with a default also)
 """
 
 import sys, os, shutil
@@ -11,7 +16,7 @@ from ConfigParser import SafeConfigParser, DEFAULTSECT
 import unittest
 import tempfile
 
-def ParseWithFile( parser, defaults = None, filename = 'settings.ini', arguments = None ):
+def ParseWithFile( parser, defaults = None, filename = 'settings.ini', arguments = None, do_not_save = [] ):
     """
     Parse a command line and complete with data from a settings file.
 
@@ -21,9 +26,9 @@ def ParseWithFile( parser, defaults = None, filename = 'settings.ini', arguments
     NOTE: The parser should not have any defaults setup. Use the defaults array instead.
     If arguments is not specified, sys.argv[1:] is used.
 
-    NOTE: Only the basic string,int,long and float types are supported, as well as store_true/store_false
+    do_not_save can be used to specify the options that should not be saved to file
 
-    TODO: Allow specifying of options that should not be saved
+    NOTE: Only the basic string,int,long and float types are supported, as well as store_true/store_false
 """
 
     # parse command line
@@ -40,10 +45,16 @@ def ParseWithFile( parser, defaults = None, filename = 'settings.ini', arguments
         if ( option.dest is None ):
             continue # '--help' (special case)
         option_name = option.dest
+        option_save = True
+        try:
+            do_not_save.index( option_name )
+            option_save = False
+        except:
+            pass
         option_value = getattr( options, option_name )
         if ( option_value is None ):
             # see if the settings file has something
-            if ( cfp.has_option( DEFAULTSECT, option_name ) ):
+            if ( option_save and cfp.has_option( DEFAULTSECT, option_name ) ):
                 # get the right type to use and assign the value
                 if ( option.type == 'string' ):
                     option_value = cfp.get( DEFAULTSECT, option_name )
@@ -63,24 +74,28 @@ def ParseWithFile( parser, defaults = None, filename = 'settings.ini', arguments
                 # we know a default value to apply
                 setattr( options, option_name, defaults[ option_name ] )
         else:
-            # a value was passed on the command line
-            if ( ( defaults is None ) or ( not defaults.has_key( option_name ) ) ):
-                # no default is known for that value, always save to the config file
-                cfp.set( DEFAULTSECT, option_name, str( option_value ) )
-            else:
-                if ( defaults[ option_name ] != option_value ):
-                    # save a different value than the default
+            if ( option_save ):
+                # a value was passed on the command line (and it's one that needs to be saved to file)
+                if ( ( defaults is None ) or ( not defaults.has_key( option_name ) ) ):
+                    # no default is known for that value, always save to the config file
                     cfp.set( DEFAULTSECT, option_name, str( option_value ) )
                 else:
-                    # explicitely passing the default value means we should not store it
-                    cfp.remove_option( DEFAULTSECT, option_name ) # will return False if no option exist
+                    if ( defaults[ option_name ] != option_value ):
+                        # save a different value than the default
+                        cfp.set( DEFAULTSECT, option_name, str( option_value ) )
+                    else:
+                        # explicitely passing the default value means we should not store it
+                        cfp.remove_option( DEFAULTSECT, option_name ) # will return False if no option exist
+            else:
+                # do not save this value, actually .. make sure it's not even in the current settings
+                cfp.remove_option( DEFAULTSECT, option_name )
 
     # write out the updated configuration
     cfp.write( file( filename, 'w' ) )
 
     return ( options, args )
 
-def SaveToFile( options, parser, defaults = None, filename = 'settings.ini' ):
+def SaveToFile( options, parser, defaults = None, filename = 'settings.ini', do_not_save = [] ):
     """"Save back to file a set of options that have been modified by the application"""
     # read settings
     cfp = SafeConfigParser()
@@ -94,17 +109,24 @@ def SaveToFile( options, parser, defaults = None, filename = 'settings.ini' ):
         option_value = getattr( options, option_name )
         if ( option_value is None ):
             continue
+        try:
+            do_not_save.index( option_name )
+        except:
         # a value was passed on the command line
-        if ( ( defaults is None ) or ( not defaults.has_key( option_name ) ) ):
-            # no default is known for that value, always save to the config file
-            cfp.set( DEFAULTSECT, option_name, str( option_value ) )
-        else:
-            if ( defaults[ option_name ] != option_value ):
-                # save a different value than the default
+            if ( ( defaults is None ) or ( not defaults.has_key( option_name ) ) ):
+                # no default is known for that value, always save to the config file
                 cfp.set( DEFAULTSECT, option_name, str( option_value ) )
             else:
-                # explicitely passing the default value means we should not store it
-                cfp.remove_option( DEFAULTSECT, option_name ) # will return False if no option exist
+                if ( defaults[ option_name ] != option_value ):
+                    # save a different value than the default
+                    cfp.set( DEFAULTSECT, option_name, str( option_value ) )
+                else:
+                    # explicitely passing the default value means we should not store it
+                    cfp.remove_option( DEFAULTSECT, option_name ) # will return False if no option exist
+        else: # of the try/except block
+            # do not save this value, actually .. make sure it's not even in the current settings
+            cfp.remove_option( DEFAULTSECT, option_name )
+            
     # write out the updated configuration
     cfp.write( file( filename, 'w' ) )        
 
