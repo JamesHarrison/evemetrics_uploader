@@ -15,7 +15,6 @@ class Processor( object ):
         self.upload_client = upload_client
 
     def OnNewFile( self, pathname ):
-        print 'OnNewFile: %r' % pathname
         try:
             if ( pathname.__class__ == QtCore.QString ):
                 pathname = str( pathname )
@@ -106,7 +105,7 @@ class GUI( object ):
             traceback.print_exc()
             self.monitor = None
         else:
-            print 'Cache monitoring enabled.'
+            print 'Uploader ready'
             # write settings out to file for next run
             self.config.saveSettings()
         
@@ -121,6 +120,10 @@ class GUI( object ):
 
         self.status = QtGui.QPlainTextEdit()
         self.status.setReadOnly( True )
+        # I can't figure the pyqt way, so passing the numeric value
+#        self.status.setLineWrapMode( QtGui.QTextEdit.NoWrap )
+        self.status.setLineWrapMode( 0 )
+        self.status.setMaximumBlockCount( self.config.options.lines )
         sys.stdout = stdout_wrap( self.monkeypatch_write )
 
         # tabs
@@ -165,7 +168,7 @@ class GUI( object ):
                 traceback.print_exc()
                 self.monitor = None
             else:
-                print 'Cache monitoring enabled.'
+                print 'Uploader ready'
         
         if ( self.monitor is None ):
             # bring the prefs tab to front to set the config
@@ -182,16 +185,18 @@ class Configuration( object ):
         # using cmdline helper module for disk backing
         # pydoc ./cmdline.py
         # defaults are handled separately with the cmdline module
-        self.defaults = { 'poll' : 10, 'gui' : True }
+        self.defaults = { 'poll' : 10, 'gui' : True, 'lines' : 1000, 'verbose' : False }
         self.parser = OptionParser()
         # core
         self.parser.add_option( '-t', '--token', dest = 'token', help = 'EVE Metrics uploader token - see http://www.eve-metrics.com/downloads' )
         self.parser.add_option( '-p', '--path', dest = 'path', help = 'EVE cache path (top level directory)' )
+        self.parser.add_option( '-v', '--verbose', dest = 'verbose', help = 'Be verbose (default %r)' % self.defaults['verbose'] )
         # UI
         self.parser.add_option( '-n', '--nogui', action = 'store_false', dest = 'gui', help = 'Run in text mode' )
         self.parser.add_option( '-g', '--gui', action = 'store_true', dest = 'gui', help = 'Run in GUI mode (default)' )
         # filesystem alteration monitoring
-        self.parser.add_option( '-P', '--poll', dest = 'poll', help = 'Poll every n seconds (default %d)' % self.defaults['poll'] )
+        self.parser.add_option( '-P', '--poll', dest = 'poll', help = 'Generic file monitor: poll every n seconds (default %d)' % self.defaults['poll'] )
+        self.parser.add_option( '-l', '--lines', dest = 'lines', help = 'How many scrollback lines in the GUI (default %d)' % self.defaults['lines'] )
 
         ( self.options, self.args ) = ParseWithFile( self.parser, self.defaults, filename = 'eve_uploader.ini' )
 
@@ -250,7 +255,7 @@ class Configuration( object ):
         # we can instanciate the filesystem monitor
         monitor = None
         if ( False and platform.system() == 'Windows' ):
-            print "Loading the Win32FileMonitor"
+            print 'Loading win32 file monitor'
             try:
                 from evemetrics.file_watcher.win32 import Win32FileMonitor
                 monitor = MonitorFactory( Win32FileMonitor, cache_folders )
@@ -258,17 +263,17 @@ class Configuration( object ):
                 traceback.print_exc()
                 print "Could not load the win32 optimized file monitor."
         elif ( platform.system() == 'Linux' ):
-            print "Loading the PosixFileMonitor"
+            print 'Loading inotify file monitor'
             try:
                 from evemetrics.file_watcher.posix import PosixFileMonitor
                 monitor = MonitorFactory( PosixFileMonitor, cache_folders )
             except ImportError, e:
                 traceback.print_exc()
-                print "Could not load the non blocking file monitor. Check your pyinotify installation."
+                print "Could not load the Linux optimized file monitor. Check your pyinotify installation."
             pass
 
         if ( monitor is None ):
-            print "Loading the GenericFileMonitor"
+            print 'Loading generic file monitor'
             from evemetrics.file_watcher.generic import FileMonitor
             monitor = MonitorFactory( FileMonitor, cache_folders )
 
