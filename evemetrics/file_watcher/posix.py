@@ -1,4 +1,4 @@
-import sys, os, time, traceback
+import sys, os, time, traceback, errno, logging
 
 from PyQt4 import QtCore
 from PyQt4.QtCore import QThread
@@ -26,8 +26,13 @@ class PosixFileMonitor( QThread ):
         self.factory = factory
 
         self.handler = EventHandler( factory )
+        pyinotify.VERBOSE = True
         self.wm = pyinotify.WatchManager()
-        self.notifier = pyinotify.Notifier(self.wm, self.handler)
+        self.notifier = pyinotify.Notifier( self.wm, self.handler )
+        ret = self.wm.add_watch( self.path, pyinotify.IN_MODIFY | pyinotify.IN_CREATE, rec = False )
+        if ( len( ret ) == 0 or ret[ self.path ] == -1 ):
+            raise Exception( 'add_watch failed' )
+        self.wdd = ret
 
     def __del__(self):
         self.exiting = True
@@ -35,7 +40,6 @@ class PosixFileMonitor( QThread ):
 
     # this is our code asking the threads to start
     def Run( self ):
-        self.wdd = self.wm.add_watch( self.path, pyinotify.IN_MODIFY | pyinotify.IN_CREATE, rec=True)
         # start the thread
         self.start()
 

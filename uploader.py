@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, os, time, traceback, pprint, signal, platform
+import sys, os, time, traceback, pprint, signal, platform, logging
 
 from optparse import OptionParser
 from cmdline import ParseWithFile, SaveToFile
@@ -39,13 +39,23 @@ class Processor( object ):
         else:
             print ret
 
-class stdout_wrap( object ):
-    def __init__( self, relay ):
-        self.relay = relay
+# present a stream friendly API (for instance to replace sys.stdout)
+# and pass this to a callable that's line based
+class wrap_to_lineprint( object ):
+    def __init__( self, c ):
+        self.c = c # a callable
+        self.line = ''
 
-    def write( self, str ):
-        self.relay( str )
-        
+    def write( self, s ):
+        self.line += s
+        spl = self.line.split('\n')
+        if ( len( spl ) >= 2 ):
+            while ( len( spl ) > 1 ):
+                self.c( spl[0] )
+                spl = spl[1:]
+            assert( len( spl ) == 1 )
+            self.line = spl[0]
+
 class Console( object ):
     def __init__( self, config ):
         self.config = config
@@ -54,7 +64,7 @@ class Console( object ):
         self.monitor = self.config.createMonitor()
 
         if ( self.monitor is None ):
-            print 'Incorrect or insufficient command line options for headless operation.'
+            logging.error( 'Incorrect or insufficient command line options for headless operation.' )
             return
 
         self.app = QtCore.QCoreApplication( [] )
@@ -66,6 +76,14 @@ class Console( object ):
 
         self.app.exec_()
 
+class LoggingToGUI( logging.Handler ):
+    def __init__( self, text_widget ):
+        logging.Handler.__init__( self )
+        self.text_widget = text_widget
+
+    def emit( self, record ):
+        self.text_widget.appendPlainText( record.getMessage() )
+
 class GUI( object ):
     def __init__( self, config ):
         self.config = config
@@ -74,18 +92,6 @@ class GUI( object ):
     def setStatus( self, msg ):
         self.mainwindow.statusBar().showMessage( msg )        
 
-    def monkeypatch_write( self, str ):
-        sys.__stdout__.write( str )
-        # appendPlainText inserts \n for each call, compensate
-        self.stdout_line += str
-        spl = self.stdout_line.split('\n')
-        if ( len( spl ) >= 2 ):
-            while ( len( spl ) > 1 ):
-                self.status.appendPlainText( spl[0] )
-                spl = spl[1:]
-            assert( len( spl ) == 1 )
-            self.stdout_line = spl[0]
-
     def browsePath( self ):
         fileName = QtGui.QFileDialog.getExistingDirectory( self.mainwindow, 'Select your EvE directory (where eve.exe resides)' )
 
@@ -93,9 +99,9 @@ class GUI( object ):
         # flip back to main tab
         self.tabs.setCurrentIndex( 0 )
         if ( not self.monitor is None ):
-            print 'Tearing down existing monitor'
+            logging.info( 'Tearing down existing monitor' )
             self.monitor = None
-        print 'Applying settings'
+        logging.info( 'Applying settings' )
         self.config.options.token = str( self.token_edit.text() )
         try:
             self.monitor = self.config.createMonitor()
@@ -105,7 +111,7 @@ class GUI( object ):
             traceback.print_exc()
             self.monitor = None
         else:
-            print 'Uploader ready'
+            logging.info( 'Uploader ready' )
             # write settings out to file for next run
             self.config.saveSettings()
         
@@ -124,7 +130,17 @@ class GUI( object ):
 #        self.status.setLineWrapMode( QtGui.QTextEdit.NoWrap )
         self.status.setLineWrapMode( 0 )
         self.status.setMaximumBlockCount( self.config.options.lines )
-        sys.stdout = stdout_wrap( self.monkeypatch_write )
+#        sys.stdout = stdout_wrap( self.monkeypatch_write )
+
+        self.logging_handler = LoggingToGUI( self.status )
+        self.logging_handler.level = logging.INFO
+        if ( self.config.options.verbose ):
+            self.logging_handler.level = logging.DEBUG
+        logging.getLogger('').addHandler( self.logging_handler )
+
+#        logging.info('test info line')
+#        logging.debug('test debug line')
+#        print 'test print line'
 
         # tabs
         self.tabs = QtGui.QTabWidget()
@@ -168,7 +184,7 @@ class GUI( object ):
                 traceback.print_exc()
                 self.monitor = None
             else:
-                print 'Uploader ready'
+                logging.info( 'Uploader ready' )
         
         if ( self.monitor is None ):
             # bring the prefs tab to front to set the config
@@ -186,11 +202,12 @@ class Configuration( object ):
         # pydoc ./cmdline.py
         # defaults are handled separately with the cmdline module
         self.defaults = { 'poll' : 10, 'gui' : True, 'lines' : 1000, 'verbose' : False }
+        self.do_not_save = [ 'verbose' ]
         self.parser = OptionParser()
         # core
         self.parser.add_option( '-t', '--token', dest = 'token', help = 'EVE Metrics uploader token - see http://www.eve-metrics.com/downloads' )
         self.parser.add_option( '-p', '--path', dest = 'path', help = 'EVE cache path (top level directory)' )
-        self.parser.add_option( '-v', '--verbose', dest = 'verbose', help = 'Be verbose (default %r)' % self.defaults['verbose'] )
+        self.parser.add_option( '-v', '--verbose', action = 'store_true', dest = 'verbose', help = 'Be verbose (default %r)' % self.defaults['verbose'] )
         # UI
         self.parser.add_option( '-n', '--nogui', action = 'store_false', dest = 'gui', help = 'Run in text mode' )
         self.parser.add_option( '-g', '--gui', action = 'store_true', dest = 'gui', help = 'Run in GUI mode (default)' )
@@ -198,7 +215,7 @@ class Configuration( object ):
         self.parser.add_option( '-P', '--poll', dest = 'poll', help = 'Generic file monitor: poll every n seconds (default %d)' % self.defaults['poll'] )
         self.parser.add_option( '-l', '--lines', dest = 'lines', help = 'How many scrollback lines in the GUI (default %d)' % self.defaults['lines'] )
 
-        ( self.options, self.args ) = ParseWithFile( self.parser, self.defaults, filename = 'eve_uploader.ini' )
+        ( self.options, self.args ) = ParseWithFile( self.parser, self.defaults, filename = 'eve_uploader.ini', do_not_save = self.do_not_save )
 
         print 'Current settings:'
         print '  Token: %r' % self.options.token
@@ -206,8 +223,8 @@ class Configuration( object ):
         print '  GUI: %r' % self.options.gui
 
     def saveSettings( self ):
-        SaveToFile( self.options, self.parser, self.defaults, filename = 'eve_uploader.ini' )
-        print 'Configuration saved'
+        SaveToFile( self.options, self.parser, self.defaults, filename = 'eve_uploader.ini', do_not_save = self.do_not_save )
+        logging.info( 'Configuration saved' )
 
     # this returns a new monitor, processor, uploader chain based on current settings
     # it will try to guess values if they are missing
@@ -215,14 +232,14 @@ class Configuration( object ):
     # this may be called several times during the lifespan of the process when settings are modified
     def createMonitor( self ):
         if ( self.options.token is None ):
-            print 'Upload token needs to be set.'
+            logging.error( 'Upload token needs to be set.' )
             # no point continuing without a valid token
             return
         
         # the cache path can be explicitely set, if not we rely on autodetection
         checkpath = self.options.path
         if ( checkpath is None ):
-            print 'Looking for your EVE cache in the usual locations'
+            logging.info( 'Looking for your EVE cache in the usual locations' )
             if ( platform.system() == 'Windows' ):
                 checkpath = os.path.join( os.environ['LOCALAPPDATA'], 'CCP', 'EVE' )
             elif ( platform.system() == 'Linux' ):
@@ -231,10 +248,10 @@ class Configuration( object ):
             elif ( platform.system() == 'Darwin' ):
                 checkpath = os.path.expanduser( '~/Library/Preferences/EVE Online Preferences/p_drive/Local Settings/Application Data/CCP/EVE' )
         if ( not os.path.isdir( checkpath ) ):
-            print '%r doesn\'t exist. Cache path not found.' % checkpath
+            logging.error( '%r doesn\'t exist. Cache path not found.' % checkpath )
             return
 
-        print 'Base cache path is %r' % checkpath
+        logging.info( 'Base cache path is %r' % checkpath )
         
         # now build a list of the cache folders to monitor
         cache_folders = []
@@ -245,35 +262,35 @@ class Configuration( object ):
             cache_folders.append( testdir )
 
         if ( len( cache_folders ) == 0 ):
-            print 'Could not find any valid cache folders under the cache path %r - invalid cache path?' % checkpath
+            logging.error( 'Could not find any valid cache folders under the cache path %r - invalid cache path?' % checkpath )
             return
 
-        print 'Monitoring the following directory(es):'
+        logging.info( 'Monitoring the following directory(es):' )
         for c in cache_folders:
-            print c
+            logging.info( c )
 
         # we can instanciate the filesystem monitor
         monitor = None
         if ( False and platform.system() == 'Windows' ):
-            print 'Loading win32 file monitor'
+            logging.info( 'Loading win32 file monitor' )
             try:
                 from evemetrics.file_watcher.win32 import Win32FileMonitor
                 monitor = MonitorFactory( Win32FileMonitor, cache_folders )
             except ImportError, e:
                 traceback.print_exc()
-                print "Could not load the win32 optimized file monitor."
+                logging.error( 'Could not load the win32 optimized file monitor.' )
         elif ( platform.system() == 'Linux' ):
-            print 'Loading inotify file monitor'
+            logging.info( 'Loading inotify file monitor' )
             try:
                 from evemetrics.file_watcher.posix import PosixFileMonitor
-                monitor = MonitorFactory( PosixFileMonitor, cache_folders )
-            except ImportError, e:
+                monitor = MonitorFactory( PosixFileMonitor, cache_folders )                
+            except:
                 traceback.print_exc()
-                print "Could not load the Linux optimized file monitor. Check your pyinotify installation."
+                logging.error( 'Could not load the Linux optimized file monitor or initialization error. Check your pyinotify installation.' )
             pass
 
         if ( monitor is None ):
-            print 'Loading generic file monitor'
+            logging.info( 'Loading generic file monitor' )
             from evemetrics.file_watcher.generic import FileMonitor
             monitor = MonitorFactory( FileMonitor, cache_folders )
 
@@ -296,10 +313,18 @@ if ( __name__ == '__main__' ):
         from PyQt4 import QtGui
     except:
         traceback.print_exc()
-        print 'There was a problem with the PyQt backend.'
+        logging.error( 'There was a problem with the PyQt backend.' )
         sys.exit( -1 )
 
     config = Configuration()
+
+    log_level = logging.INFO
+    if ( config.options.verbose ):
+        log_level = logging.DEBUG
+    logging.basicConfig( level = log_level, format = '%(message)s' )
+    # map stdout into the logging facilities,
+    # we will achieve --verbose filtering on print calls that way
+    sys.stdout = wrap_to_lineprint( logging.debug )
 
     if ( config.options.gui ):
         gui = GUI( config )
