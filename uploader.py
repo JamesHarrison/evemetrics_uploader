@@ -47,7 +47,7 @@ class Processor( object ):
                 if ( parsed_data[0] == 'GetOldPriceHistory' ):
                     logging.info( 'Uploaded price history for %s in %s' % (t.name, REGION_MAP.get(parsed_data[1], 'Unknown') ) )
                 else:
-                    logging.info( 'Uploaded price history for %s in %s' % (t.name, REGION_MAP.get(parsed_data[1], 'Unknown') ) )
+                    logging.info( 'Uploaded orders for %s in %s' % (t.name, REGION_MAP.get(parsed_data[1], 'Unknown') ) )
                 logging.debug( 'Removing cache file %s' % pathname )
                 os.remove( pathname )
             else:
@@ -270,8 +270,6 @@ class Configuration( object ):
             logging.error( '%r doesn\'t exist. Cache path not found.' % checkpath )
             return
 
-        logging.info( 'Base cache path is %r' % checkpath )
-        
         # now build a list of the cache folders to monitor
         cache_folders = []
         eve_path = None
@@ -318,17 +316,18 @@ class Configuration( object ):
                 #print next_folder
 
         if ( eve_path ):
-          logging.debug( "Found EVE installation: %s", eve_path)
+          logging.info( "Found EVE installation: %s", eve_path)
         else:
           logging.error( "Unable to locate your EVE installation." )
 
         if ( len( cache_folders ) == 0 ):
             logging.error( 'Could not find any valid cache folders under the cache path %r - invalid cache path?' % checkpath )
             return
-
-        logging.info( 'Monitoring the following directory(es):' )
-        for c in cache_folders:
-            logging.info( c )
+        else:
+            logging.info( 'Base cache path is %s' % checkpath )
+            logging.info( 'Monitoring the following subdirectory(es):' )
+            for c in cache_folders:
+                logging.info( c.replace( checkpath, '' ) )
 
         # we can instanciate the filesystem monitor
         monitor = None
