@@ -103,6 +103,11 @@ class LoggingToGUI( logging.Handler ):
     def emit( self, record ):
         self.text_widget.appendPlainText( record.getMessage() )
 
+    def updateLoggingLevel( self, verbose ):
+        self.level = logging.INFO
+        if ( verbose ):
+            self.level = logging.DEBUG
+
 class GUI( object ):
     def __init__( self, config ):
         self.config = config
@@ -121,6 +126,15 @@ class GUI( object ):
             logging.info( 'Tearing down existing monitor' )
             self.monitor = None
         logging.info( 'Applying settings' )
+
+        # update verbose status
+        self.config.options.verbose = self.verbose_box.isChecked()
+        if ( self.config.options.verbose ):
+            logging.getLogger('').setLevel( logging.DEBUG )
+        else:
+            logging.getLogger('').setLevel( logging.INFO )
+        self.logging_handler.updateLoggingLevel( self.config.options.verbose )
+
         self.config.options.token = str( self.token_edit.text() )
         try:
             self.monitor = self.config.createMonitor()
@@ -133,6 +147,7 @@ class GUI( object ):
             logging.info( 'Uploader ready' )
             # write settings out to file for next run
             self.config.saveSettings()
+
         
     def Run( self ):
         self.app = QtGui.QApplication( [] )
@@ -152,9 +167,7 @@ class GUI( object ):
 #        sys.stdout = stdout_wrap( self.monkeypatch_write )
 
         self.logging_handler = LoggingToGUI( self.status )
-        self.logging_handler.level = logging.INFO
-        if ( self.config.options.verbose ):
-            self.logging_handler.level = logging.DEBUG
+        self.logging_handler.updateLoggingLevel( self.logging_handler.level )
         logging.getLogger('').addHandler( self.logging_handler )
 
 #        logging.info('test info line')
@@ -168,10 +181,14 @@ class GUI( object ):
         prefs_layout = QtGui.QFormLayout()
         self.token_edit = QtGui.QLineEdit()
         prefs_layout.addRow( QtGui.QLabel( 'User Token:' ), self.token_edit )
+        self.verbose_box = QtGui.QCheckBox()
+        prefs_layout.addRow( QtGui.QLabel( 'Verbose:' ), self.verbose_box )
+        
 # disable the cache browse for now - auto detection should suffice
 #        self.path_browse = QtGui.QPushButton( 'Change' )
 #        self.app.connect( self.path_browse, QtCore.SIGNAL( 'clicked()' ), self.browsePath )
 #        prefs_layout.addRow( QtGui.QLabel( 'EvE cache path:' ), self.path_browse )
+
         prefs_widg = QtGui.QWidget()
         prefs_widg.setLayout( prefs_layout )
 
@@ -189,6 +206,11 @@ class GUI( object ):
 
         if ( not self.config.options.token is None ):
             self.token_edit.setText( self.config.options.token )
+            # couldn't get the python right for http://doc.qt.nokia.com/4.6/qt.html#CheckState-enum
+            if ( self.config.options.verbose ):
+                self.verbose_box.setCheckState( 2 )
+            else:
+                self.verbose_box.setCheckState( 0 )
 
         self.mainwindow.setCentralWidget( self.tabs )
         self.mainwindow.show()
