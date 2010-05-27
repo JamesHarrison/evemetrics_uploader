@@ -20,6 +20,9 @@ class Win32FileMonitor( FileMonitor ):
         self.wait()    
     
     def Run( self ):
+        # testing stuff
+        #self.factory.emit(QtCore.SIGNAL("fileChanged(QString)"), QtCore.QString('C:\\Users\\Dominik\\AppData\\Local\\CCP\\EVE\\e_eve_tranquility\\cache\\MachoNet\\87.237.38.200\\235\\CachedMethodCalls\\757f.cache'))
+        #self.factory.emit(QtCore.SIGNAL("fileChanged(QString)"), QtCore.QString('C:\\Users\\Dominik\\AppData\\Local\\CCP\\EVE\\e_eve_tranquility\\cache\\MachoNet\\87.237.38.200\\235\\CachedMethodCalls\\2488.cache'))
         self.start()
 
     def run( self ):
@@ -42,17 +45,13 @@ class Win32FileMonitor( FileMonitor ):
                 hDir,
                 1024,
                 False,
-                win32con.FILE_NOTIFY_CHANGE_FILE_NAME |
-                win32con.FILE_NOTIFY_CHANGE_DIR_NAME |
-                win32con.FILE_NOTIFY_CHANGE_ATTRIBUTES |
-                win32con.FILE_NOTIFY_CHANGE_SIZE |
-                win32con.FILE_NOTIFY_CHANGE_LAST_WRITE |
-                win32con.FILE_NOTIFY_CHANGE_SECURITY,
+                win32con.FILE_NOTIFY_CHANGE_LAST_WRITE,
                 None,
                 None
             )
             for action, file in results:
                 full_filename = os.path.join (self.path, file)
-                if (action == 1 or action == 3):
+                #print "ACTION------------------> %s" % action
+                if (action == 3):
                     self.factory.emit(QtCore.SIGNAL("fileChanged(QString)"), QtCore.QString(full_filename))
 

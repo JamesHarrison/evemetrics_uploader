@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, os, time, traceback, pprint, signal, platform, logging
+import sys, os, time, traceback, pprint, signal, platform, logging, string
 
 from optparse import OptionParser
 from cmdline import ParseWithFile, SaveToFile
@@ -9,31 +9,50 @@ from evemetrics import parser, uploader
 
 from evemetrics.file_watcher.generic import FileMonitor
 from evemetrics.file_watcher.factory import MonitorFactory
+from reverence import blue 
 
+REGION_MAP = {10000001: 'Derelik',10000002: 'The Forge',10000003: 'Vale of the Silent',10000004: 'UUA-F4',10000005: 'Detorid',10000006: 'Wicked Creek',10000007: 'Cache',10000008: 'Scalding Pass',10000009: 'Insmother',10000010: 'Tribute',10000011: 'Great Wildlands',10000012: 'Curse',10000013: 'Malpais',10000014: 'Catch',10000015: 'Venal',10000016: 'Lonetrek',10000017: 'J7HZ-F',10000018: 'The Spire',10000019: 'A821-A',10000020: 'Tash-Murkon',10000021: 'Outer Passage',10000022: 'Stain',10000023: 'Pure Blind',10000025: 'Immensea',10000027: 'Etherium Reach',10000028: 'Molden Heath',10000029: 'Geminate',10000030: 'Heimatar',10000031: 'Impass',10000032: 'Sinq Laison',10000033: 'The Citadel',10000034: 'The Kalevala Expanse',10000035: 'Deklein',10000036: 'Devoid',10000037: 'Everyshore',10000038: 'The Bleak Lands',10000039: 'Esoteria',10000040: 'Oasa',10000041: 'Syndicate',10000042: 'Metropolis',10000043: 'Domain',10000044: 'Solitude',10000045: 'Tenal',10000046: 'Fade',10000047: 'Providence',10000048: 'Placid',10000049: 'Khanid',10000050: 'Querious',10000051: 'Cloud Ring',10000052: 'Kador',10000053: 'Cobalt Edge',10000054: 'Aridia',10000055: 'Branch',10000056: 'Feythabolis',10000057: 'Outer Ring',10000058: 'Fountain',10000059: 'Paragon Soul',10000060: 'Delve',10000061: 'Tenerifis',10000062: 'Omist',10000063: 'Period Basis',10000064: 'Essence',10000065: 'Kor-Azor',10000066: 'Perrigen Falls',10000067: 'Genesis',10000068: 'Verge Vendor',10000069: 'Black Rise'}
 class Processor( object ):
-    def __init__( self, upload_client ):
+    def __init__( self, upload_client, eve_path ):
         self.upload_client = upload_client
+        self.eve_path = eve_path
+        eve = blue.EVE(eve_path)
+        self.reverence = eve.getconfigmgr()
+
 
     def OnNewFile( self, pathname ):
         try:
             if ( pathname.__class__ == QtCore.QString ):
                 pathname = str( pathname )
-            print 'New or modified file: %s' % pathname
+            print 'OnNewFile: %s' % pathname
             if ( os.path.splitext( pathname )[1] != '.cache' ):
-                print 'Not a .cache, skipping'
+                logging.debug( 'Not a .cache, skipping' )
                 return
             try:
                 parsed_data = parser.parse( pathname )
             except IOError:
                 # I was retrying initially, but some files are deleted before we get a chance to parse them,
                 # which is what's really causing this
-                print 'IOError exception, skipping'
+                logging.warning( 'IOError exception, skipping' )
                 return
             if ( parsed_data is None ):
-                print 'No data parsed'
+                logging.debug( 'No data parsed' )
                 return
-            print 'Call %s, regionID %d, typeID %d' % ( parsed_data[0], parsed_data[1], parsed_data[2] )
+            t = self.reverence.invtypes.Get(parsed_data[2])
+            
+            logging.debug( 'Call %s, regionID %d, typeID %d' % ( parsed_data[0], parsed_data[1], parsed_data[2] ) )
+
             ret = self.upload_client.send(parsed_data)
+            if ( ret ):
+                if ( parsed_data[0] == 'GetOldPriceHistory' ):
+                    logging.info( 'Uploaded price history for %s in %s' % (t.name, REGION_MAP.get(parsed_data[1], 'Unknown') ) )
+                else:
+                    logging.info( 'Uploaded price history for %s in %s' % (t.name, REGION_MAP.get(parsed_data[1], 'Unknown') ) )
+                logging.debug( 'Removing cache file %s' % pathname )
+                os.remove( pathname )
+            else:
+                logging.error( 'Could not upload file')
+                # We should manage some sort of backlog if evemetrics is down
         except:
             traceback.print_exc()
         else:
@@ -255,11 +274,53 @@ class Configuration( object ):
         
         # now build a list of the cache folders to monitor
         cache_folders = []
+        eve_path = None
         for installation in os.listdir( checkpath ):
-            testdir = os.path.join( checkpath, installation, 'cache', 'MachoNet', '87.237.38.200', '235', 'CachedMethodCalls' )
+            installation_paths = os.path.join( checkpath, installation, 'cache', 'MachoNet', '87.237.38.200' )
+            if ( not os.path.isdir( installation_paths ) ):
+                continue
+            # lets find the newest machonet version
+            versions = [int(x) for x in os.listdir( installation_paths ) ]
+            versions.sort()
+            testdir = os.path.join( installation_paths, str( versions.pop() ), 'CachedMethodCalls' )
             if ( not os.path.isdir( testdir ) ):
                 continue
             cache_folders.append( testdir )
+
+            if ( not eve_path ):
+              # we need to get a eve installation path to display information about the item/region uploaded
+              parts = installation.split('_')
+              parts.pop(len(parts)-1)
+              #print parts
+              if ( platform.system() == 'Windows' ):
+                base_path = "%s:\\" % parts.pop(0)
+              elif ( platform.system() == 'Linux' ):
+                base_path = os.path.join( os.path.expanduser( '~/.wine/drive_%s' % parts.pop(0) ) )
+
+              next_folder = None
+              while ( not eve_path ):
+                if ( len(parts) == 0 ):
+                  break
+                if ( next_folder ):
+                  next_folder = "%s %s" % (next_folder, parts.pop(0))
+                  if ( len(parts) != 0 and parts[0] == '(x86)' ):
+                    next_folder = "%s %s" % (next_folder, parts.pop(0))  
+                else:
+                  next_folder = parts.pop(0)
+                if ( os.path.isdir( os.path.join( base_path, next_folder ) ) ):
+                  base_path = os.path.join( base_path, next_folder )
+                  next_folder = ""
+                  #logging.debug( "Set basepath to %s", base_path )
+                if ( os.path.isdir( os.path.join( base_path, 'bulkdata' ) ) ):
+                  # we finally found an installation
+                  eve_path = base_path
+                  break
+                #print next_folder
+
+        if ( eve_path ):
+          logging.debug( "Found EVE installation: %s", eve_path)
+        else:
+          logging.error( "Unable to locate your EVE installation." )
 
         if ( len( cache_folders ) == 0 ):
             logging.error( 'Could not find any valid cache folders under the cache path %r - invalid cache path?' % checkpath )
@@ -271,7 +332,7 @@ class Configuration( object ):
 
         # we can instanciate the filesystem monitor
         monitor = None
-        if ( False and platform.system() == 'Windows' ):
+        if ( platform.system() == 'Windows' ):
             logging.info( 'Loading win32 file monitor' )
             try:
                 from evemetrics.file_watcher.win32 import Win32FileMonitor
@@ -299,7 +360,7 @@ class Configuration( object ):
         upload_client.set_token( self.options.token )
 
         # the processor only needs to know about the upload client
-        processor = Processor( upload_client )
+        processor = Processor( upload_client, eve_path )
 
         # points the monitor to the processor, hooks up the signals
         monitor.setProcessor( processor )

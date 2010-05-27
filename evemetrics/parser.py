@@ -16,7 +16,8 @@ def parse(filepath):
   key, obj = blue.marshal.Load(open(filepath, "rb").read())
   s = StringIO.StringIO()
   w = csv.writer(s)
-  if 'GetOldPriceHistory' in key or 'GetNewPriceHistory' in key:
+  # GetNewPriceHistory will screw with em for now
+  if 'GetOldPriceHistory' in key: #or 'GetNewPriceHistory' in key:
     history = obj['lret']
     for row in history:
       w.writerow([
@@ -33,8 +34,19 @@ def parse(filepath):
         order.duration,
         order.stationID, order.regionID, order.solarSystemID, order.jumps, 'cache'
       ])
+  elif 'GetCharOrders' in key:
+    # do awesome stuff here
+    orders = obj['lret']
+    for order in orders:
+      print [
+        order.price, order.volRemaining, order.typeID, order.range, order.orderID, 
+        order.volEntered, order.minVolume, order.bid,
+        wintime_to_datetime(order.issued).strftime("%Y-%m-%d %H:%M:%S"),
+        order.duration,
+        order.stationID, order.regionID, order.solarSystemID, 'cache'
+      ]
   else:
     print 'skipping unknown key %s' % pprint.pformat( key )
     return
-  s.seek(0)
-  return [ key[1], key[2], key[3], s.read(), wintime_to_datetime( obj['version'][0] ).strftime("%Y-%m-%d %H:%M:%S") ]
+  if ( len(key) == 4 ):
+    return [ key[1], key[2], key[3], s.read(), wintime_to_datetime( obj['version'][0] ).strftime("%Y-%m-%d %H:%M:%S") ]
