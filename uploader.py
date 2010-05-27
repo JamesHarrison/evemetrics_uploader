@@ -16,7 +16,7 @@ class Processor( object ):
     def __init__( self, upload_client, eve_path ):
         self.upload_client = upload_client
         self.eve_path = eve_path
-        eve = blue.EVE(eve_path)
+        eve = blue.EVE( eve_path )
         self.reverence = eve.getconfigmgr()
 
 
@@ -273,38 +273,49 @@ class Configuration( object ):
         # now build a list of the cache folders to monitor
         cache_folders = []
         eve_path = None
+        if ( platform.system() == 'Linux' ):
+            # the Windows path tries some path reconstruction, but with only wine 32 bit it's probably easier to just go to the right path
+            eve_path = os.path.expanduser( '~/.wine/drive_c/Program Files/CCP/EVE' )
+            if ( not os.path.isdir( eve_path ) ):
+                logging.error( '%r doesn\'t exist. Base EVE install path not found.' % eve_path )
+                return
+        elif ( platform.system() == 'Darwin' ):
+            logging.error( 'TODO: EVE install path lookup on OSX' )
+            return
+
         for installation in os.listdir( checkpath ):
             installation_paths = os.path.join( checkpath, installation, 'cache', 'MachoNet', '87.237.38.200' )
             if ( not os.path.isdir( installation_paths ) ):
                 continue
             # lets find the newest machonet version
-            versions = [int(x) for x in os.listdir( installation_paths ) ]
+            versions = [ int(x) for x in os.listdir( installation_paths ) ]
             versions.sort()
             testdir = os.path.join( installation_paths, str( versions.pop() ), 'CachedMethodCalls' )
             if ( not os.path.isdir( testdir ) ):
                 continue
             cache_folders.append( testdir )
 
+            # Windows only .. doesn't work as-is on Linux (case sensitivity etc.) and probably not that necessary
             if ( not eve_path ):
               # we need to get a eve installation path to display information about the item/region uploaded
-              parts = installation.split('_')
-              parts.pop(len(parts)-1)
-              #print parts
+              parts = installation.split( '_' )
+              parts.pop( len( parts ) - 1 )
+#              print 'installation: %r parts: %r' % ( installation, parts )
               if ( platform.system() == 'Windows' ):
-                base_path = "%s:\\" % parts.pop(0)
-              elif ( platform.system() == 'Linux' ):
-                base_path = os.path.join( os.path.expanduser( '~/.wine/drive_%s' % parts.pop(0) ) )
+                base_path = "%s:\\" % parts.pop( 0 )
+
+              print 'base_path: %r' % base_path
 
               next_folder = None
               while ( not eve_path ):
                 if ( len(parts) == 0 ):
                   break
                 if ( next_folder ):
-                  next_folder = "%s %s" % (next_folder, parts.pop(0))
+                  next_folder = "%s %s" % ( next_folder, parts.pop( 0 ) )
                   if ( len(parts) != 0 and parts[0] == '(x86)' ):
-                    next_folder = "%s %s" % (next_folder, parts.pop(0))  
+                    next_folder = "%s %s" % ( next_folder, parts.pop( 0 ) )  
                 else:
-                  next_folder = parts.pop(0)
+                  next_folder = parts.pop( 0 )
                 if ( os.path.isdir( os.path.join( base_path, next_folder ) ) ):
                   base_path = os.path.join( base_path, next_folder )
                   next_folder = ""
@@ -316,9 +327,10 @@ class Configuration( object ):
                 #print next_folder
 
         if ( eve_path ):
-          logging.info( "Found EVE installation: %s", eve_path)
+          logging.info( "Found EVE installation: %s", eve_path )
         else:
           logging.error( "Unable to locate your EVE installation." )
+          return
 
         if ( len( cache_folders ) == 0 ):
             logging.error( 'Could not find any valid cache folders under the cache path %r - invalid cache path?' % checkpath )
