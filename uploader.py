@@ -299,11 +299,13 @@ class Configuration( object ):
             # the Windows path tries some path reconstruction, but with only wine 32 bit it's probably easier to just go to the right path
             eve_path = os.path.expanduser( '~/.wine/drive_c/Program Files/CCP/EVE' )
             if ( not os.path.isdir( eve_path ) ):
-                logging.error( '%r doesn\'t exist. Base EVE install path not found.' % eve_path )
+                logging.error( '%r doesn\'t exist. Base EVE install not found.' % eve_path )
                 return
         elif ( platform.system() == 'Darwin' ):
-            logging.error( 'TODO: EVE install path lookup on OSX' )
-            return
+            eve_path = '/Applications/EVE Online.app/Contents/Resources/transgaming/c_drive/Program Files/CCP/EVE'
+            if ( not os.path.isdir( eve_path ) ):
+                logging.error( '%r doesn\'t exist. Base EVE install not found.' % eve_path )
+                return
 
         for installation in os.listdir( checkpath ):
             installation_paths = os.path.join( checkpath, installation, 'cache', 'MachoNet', '87.237.38.200' )
