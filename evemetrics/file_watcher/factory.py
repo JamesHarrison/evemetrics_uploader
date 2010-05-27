@@ -6,7 +6,7 @@ from .generic import FileMonitor
 
 class MonitorFactory( QThread ):
     
-    def __init__( self, monitorClass, valid_paths ):
+    def __init__( self, monitorClass, valid_paths, options ):
         QThread.__init__( self )
         self.processor = None
         self.valid_paths = valid_paths
@@ -14,7 +14,7 @@ class MonitorFactory( QThread ):
         self.children = []
         for path in self.valid_paths:
             # the children emit signals to this factor to communicate back changes
-            self.children.append( self.monitorClass( self, path ) )
+            self.children.append( self.monitorClass( self, path, options ) )
 
     def Run( self ):
         for child in self.children:

@@ -5,10 +5,11 @@ from PyQt4 import QtGui
 from PyQt4.QtCore import QThread
 
 class FileMonitor( QThread ):
-    def __init__( self, factory, path ):
+    def __init__( self, factory, path, options ):
         QThread.__init__( self )
         self.factory = factory
         self.path = path
+        self.options = options
         self.exiting = False
         self.tree = None
 
@@ -35,16 +36,19 @@ class FileMonitor( QThread ):
             for fn in new:
                 fpn = os.path.join( self.path, fn[0] )
 #                pprint.pprint( fpn )
-                self.factory.emit(QtCore.SIGNAL("fileChanged(QString)"), QtCore.QString(fpn))
+                self.factory.emit( QtCore.SIGNAL( "fileChanged(QString)" ), QtCore.QString( fpn ) )
         self.tree = tree
         print '%d files' % len( self.tree )
 
+    # this is the thread's entry point
+    def run( self ):
+        self.Scan() # prime the tree
+        while ( True ):
+            time.sleep( self.options.poll )
+            self.Scan()
+
     # this is our code asking the threads to start
     def Run( self ):
-        self.Scan() # prime the tree
-        self.watcher = QtCore.QFileSystemWatcher( )
-        self.watcher.addPath( self.path )
-        QtCore.QObject.connect(self.watcher,QtCore.SIGNAL("directoryChanged(const QString&)"), self.Scan)
         self.start()
         
     def __del__( self ):

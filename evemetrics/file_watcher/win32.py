@@ -8,13 +8,15 @@ import os;
 from .generic import FileMonitor
 
 class Win32FileMonitor( FileMonitor ):
-    def __init__( self, factory, path ):
+
+    def __init__( self, factory, path, options ):
         QThread.__init__(self, factory)
         self.exiting = False
         self.tree = None
         self.path = path
         self.factory = factory
         self.last_run = time.time()
+
     def __del__(self):
         self.exiting = True
         self.wait()    

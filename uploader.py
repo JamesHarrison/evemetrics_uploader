@@ -347,7 +347,7 @@ class Configuration( object ):
             logging.info( 'Loading win32 file monitor' )
             try:
                 from evemetrics.file_watcher.win32 import Win32FileMonitor
-                monitor = MonitorFactory( Win32FileMonitor, cache_folders )
+                monitor = MonitorFactory( Win32FileMonitor, cache_folders, self.options )
             except ImportError, e:
                 traceback.print_exc()
                 logging.error( 'Could not load the win32 optimized file monitor.' )
@@ -355,7 +355,7 @@ class Configuration( object ):
             logging.info( 'Loading inotify file monitor' )
             try:
                 from evemetrics.file_watcher.posix import PosixFileMonitor
-                monitor = MonitorFactory( PosixFileMonitor, cache_folders )                
+                monitor = MonitorFactory( PosixFileMonitor, cache_folders, self.options )                
             except:
                 traceback.print_exc()
                 logging.error( 'Could not load the Linux optimized file monitor or initialization error. Check your pyinotify installation.' )
@@ -364,7 +364,7 @@ class Configuration( object ):
         if ( monitor is None ):
             logging.info( 'Loading generic file monitor' )
             from evemetrics.file_watcher.generic import FileMonitor
-            monitor = MonitorFactory( FileMonitor, cache_folders )
+            monitor = MonitorFactory( FileMonitor, cache_folders, self.options )
 
         # the upload client
         upload_client = uploader.Uploader()

@@ -19,7 +19,7 @@ class EventHandler( pyinotify.ProcessEvent ):
 
 class PosixFileMonitor( QThread ):
 
-    def __init__( self, factory, path ):
+    def __init__( self, factory, path, options ):
         QThread.__init__( self )
         self.exiting = False
         self.path = path
