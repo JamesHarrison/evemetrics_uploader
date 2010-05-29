@@ -49,4 +49,4 @@ def parse(filepath):
     print 'skipping unknown key %s' % pprint.pformat( key )
     return
   if ( len(key) == 4 ):
-    return [ key[1], key[2], key[3], s.read(), wintime_to_datetime( obj['version'][0] ).strftime("%Y-%m-%d %H:%M:%S") ]
+    return [ key[1], key[2], key[3], s.getvalue(), wintime_to_datetime( obj['version'][0] ).strftime("%Y-%m-%d %H:%M:%S") ]
