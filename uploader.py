@@ -19,7 +19,6 @@ class Processor( object ):
         eve = blue.EVE( eve_path )
         self.reverence = eve.getconfigmgr()
 
-
     def OnNewFile( self, pathname ):
         try:
             if ( pathname.__class__ == QtCore.QString ):
@@ -38,7 +37,7 @@ class Processor( object ):
             if ( parsed_data is None ):
                 logging.debug( 'No data parsed' )
                 return
-            t = self.reverence.invtypes.Get(parsed_data[2])
+            t = self.reverence.invtypes.Get( parsed_data[2] )
             
             logging.debug( 'Call %s, regionID %d, typeID %d' % ( parsed_data[0], parsed_data[1], parsed_data[2] ) )
 
@@ -302,7 +301,7 @@ class Configuration( object ):
                 logging.error( '%r doesn\'t exist. Base EVE install not found.' % eve_path )
                 return
         elif ( platform.system() == 'Darwin' ):
-            eve_path = '/Applications/EVE Online.app/Contents/Resources/transgaming/c_drive/Program Files/CCP/EVE'
+            eve_path = '/Applications/EVE Online.app'
             if ( not os.path.isdir( eve_path ) ):
                 logging.error( '%r doesn\'t exist. Base EVE install not found.' % eve_path )
                 return
