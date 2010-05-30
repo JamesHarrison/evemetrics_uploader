@@ -8,7 +8,7 @@ TODO: write tests for the no save and SaveToFile functionality
 (verify no save option with a default also)
 """
 
-import sys, os, shutil
+import sys, os, shutil, logging
 
 from optparse import OptionParser
 from ConfigParser import SafeConfigParser, DEFAULTSECT
@@ -34,6 +34,8 @@ def ParseWithFile( parser, defaults = None, filename = 'settings.ini', arguments
     # parse command line
     if ( arguments is None ):
         arguments = sys.argv[1:]
+    if ( len( arguments ) != 0 ):
+        logging.info( 'Command line parameters: %r' % arguments )
     ( options, args ) = parser.parse_args( arguments )
 
     # read settings

@@ -32,6 +32,7 @@ class Processor( object ):
             except IOError:
                 # I was retrying initially, but some files are deleted before we get a chance to parse them,
                 # which is what's really causing this
+                traceback.print_exc()
                 logging.warning( 'IOError exception, skipping' )
                 return
             if ( parsed_data is None ):
@@ -275,7 +276,7 @@ class Configuration( object ):
             logging.error( 'Upload token needs to be set.' )
             # no point continuing without a valid token
             return
-        
+
         # the cache path can be explicitely set, if not we rely on autodetection
         checkpath = self.options.path
         if ( checkpath is None ):
@@ -404,6 +405,7 @@ class Configuration( object ):
 if ( __name__ == '__main__' ):
     # start by verifying PyQt presence
     try:
+        import sip
         from PyQt4 import QtCore
         from PyQt4 import QtGui
     except:
