@@ -20,7 +20,10 @@ elif ( platform.system() == 'Darwin' ):
         app = [ 'uploader.py' ],
         options = {
             'py2app' : {
+                # 320 MB package includes all of Qt / PyQt
                 'packages' : [ 'PyQt4', 'reverence' ]
+                # py2app fails to package
+#                'packages' : [ 'reverence', 'sip' ]
                 }
             }
         )
