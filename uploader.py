@@ -24,6 +24,9 @@ class Processor( object ):
             if ( pathname.__class__ == QtCore.QString ):
                 pathname = str( pathname )
             print 'OnNewFile: %s' % pathname
+            if ( not os.path.exists( pathname ) ):
+                logging.debug( 'File doesn\'t exist, skipping' )
+                return
             if ( os.path.splitext( pathname )[1] != '.cache' ):
                 logging.debug( 'Not a .cache, skipping' )
                 return
