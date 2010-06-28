@@ -20,10 +20,26 @@ elif ( platform.system() == 'Darwin' ):
         app = [ 'uploader.py' ],
         options = {
             'py2app' : {
-                # 320 MB package includes all of Qt / PyQt
-                'packages' : [ 'PyQt4', 'reverence' ]
-                # py2app fails to package
-#                'packages' : [ 'reverence', 'sip' ]
+                'argv_emulation' : True, # no idea what that is
+                'packages' : [ 'reverence' ],
                 }
             }
         )
+    # pulls in too much cruft still, finish the job
+    import os, subprocess, shutil
+    rmdirs = subprocess.Popen( [ 'find', 'dist/uploader.app', '-name', '*debug*' ], stdout = subprocess.PIPE )
+    ( out, err ) = rmdirs.communicate()
+    out = out.strip()
+    for p in out.split('\n'):
+        if ( len( p ) == 0 ):
+            continue
+        print( 'Removing %s' % p )
+        if ( os.path.isdir( p ) ):
+            shutil.rmtree( p )
+        else:
+            os.unlink( p )
+    # print the size, since it's kinda crazy
+    subprocess.call( [ 'du', '-h', '-d', '0', 'dist/uploader.app' ] )
+    # considered using lipo to thin out multi arch binaries, but it turned out there were very few of them and they were small
+
+            
