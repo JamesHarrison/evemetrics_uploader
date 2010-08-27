@@ -2,15 +2,15 @@ import sys, os, time, traceback
 import win32file
 import win32con
 import pywintypes
-from PyQt4 import QtCore
-from PyQt4.QtCore import QThread
 import os; 
 from .generic import FileMonitor
-
+from threading import Thread
+import logging
+import gtk
 class Win32FileMonitor( FileMonitor ):
 
     def __init__( self, factory, path, options ):
-        QThread.__init__(self, factory)
+        Thread.__init__(self)
         self.exiting = False
         self.tree = None
         self.path = path
@@ -19,7 +19,7 @@ class Win32FileMonitor( FileMonitor ):
 
     def __del__(self):
         self.exiting = True
-        self.wait()    
+        #self.wait()    
     
     def Run( self ):
         # testing stuff
@@ -53,7 +53,10 @@ class Win32FileMonitor( FileMonitor ):
             )
             for action, file in results:
                 full_filename = os.path.join (self.path, file)
+                gtk.gdk.threads_enter()
+                logging.info("watcher init")
+                gtk.gdk.threads_leave()
                 #print "ACTION------------------> %s" % action
-                if (action == 3):
-                    self.factory.emit(QtCore.SIGNAL("fileChanged(QString)"), QtCore.QString(full_filename))
+                #if (action == 3):
+                    #self.factory.emit(QtCore.SIGNAL("fileChanged(QString)"), QtCore.QString(full_filename))
 

@@ -7,7 +7,7 @@ setup(
 	options={
                 "py2exe":{
                         "packages": ["reverence", "sip"],
-                        'bundle_files': 1
+                        'bundle_files': 3
                 }
         }
 )

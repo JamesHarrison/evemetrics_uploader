@@ -1,10 +1,8 @@
 import sys, os, time, traceback, platform
 
-from PyQt4 import QtCore
-from PyQt4 import QtGui
-from PyQt4.QtCore import QThread
+from threading import Thread
 
-class FileMonitor( QThread ):
+class FileMonitor( Thread ):
     def __init__( self, factory, path, options ):
         QThread.__init__( self )
         self.factory = factory
