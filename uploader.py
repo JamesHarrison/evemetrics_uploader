@@ -23,6 +23,7 @@ from wx import *
 #from twisted.internet import wxreactor, reactor
 #wxreactor.install()
 
+
 # present a stream friendly API (for instance to replace sys.stdout)
 # and pass this to a callable that's line based
 class wrap_to_lineprint( object ):
