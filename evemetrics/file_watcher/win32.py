@@ -6,7 +6,7 @@ import os;
 from .generic import FileMonitor
 from threading import Thread
 import logging
-import gtk
+
 class Win32FileMonitor( FileMonitor ):
 
     def __init__( self, factory, path, options ):
@@ -53,10 +53,9 @@ class Win32FileMonitor( FileMonitor ):
             )
             for action, file in results:
                 full_filename = os.path.join (self.path, file)
-                gtk.gdk.threads_enter()
-                logging.info("watcher init")
-                gtk.gdk.threads_leave()
+                logging.debug("FileChanged: %s %s" % (action, file))
                 #print "ACTION------------------> %s" % action
-                #if (action == 3):
+                if (action == 3):
+                  self.factory.processor.OnNewFile(full_filename)
                     #self.factory.emit(QtCore.SIGNAL("fileChanged(QString)"), QtCore.QString(full_filename))
 

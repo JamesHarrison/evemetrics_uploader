@@ -1,6 +1,4 @@
-import httplib
-import urllib
-import hashlib
+import httplib, urllib, hashlib, logging
 
 class Uploader:
   def __init__(self):
@@ -35,7 +33,7 @@ class Uploader:
         'Content-Type': 'application/x-www-form-urlencoded'
         } )
     response = conn.getresponse()
-    print response.status, response.reason
-    print response.read()
+    logging.debug("%s, %s" % (response.status, response.reason))
+    logging.debug(response.read())
     conn.close()
     return response.status == 200

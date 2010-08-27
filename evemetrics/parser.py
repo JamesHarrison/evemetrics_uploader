@@ -1,10 +1,6 @@
 """Parser for cache files written on top of reverence"""
 
-import csv
-import StringIO
-import datetime
-import pprint
-
+import csv, StringIO, datetime
 from reverence import blue
 
 # Quick helper function to convert CCP's long date format (Windows timestamp) into a UTC datetime object.

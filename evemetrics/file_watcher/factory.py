@@ -2,7 +2,6 @@ import sys, os, time, traceback, platform
 
 from .generic import FileMonitor
 from threading import Thread
-import gtk
 import logging
 class MonitorFactory( Thread ):
     
@@ -18,9 +17,6 @@ class MonitorFactory( Thread ):
             self.children.append( self.monitorClass( self, path, options ) )
 
     def Run( self ):
-        gtk.gdk.threads_enter()
-        logging.info("factory init")
-        gtk.gdk.threads_leave()
         for child in self.children:
             child.Run()
 
