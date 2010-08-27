@@ -22,9 +22,6 @@ class Win32FileMonitor( FileMonitor ):
         #self.wait()    
     
     def Run( self ):
-        # testing stuff
-        #self.factory.emit(QtCore.SIGNAL("fileChanged(QString)"), QtCore.QString('C:\\Users\\Dominik\\AppData\\Local\\CCP\\EVE\\e_eve_tranquility\\cache\\MachoNet\\87.237.38.200\\235\\CachedMethodCalls\\757f.cache'))
-        #self.factory.emit(QtCore.SIGNAL("fileChanged(QString)"), QtCore.QString('C:\\Users\\Dominik\\AppData\\Local\\CCP\\EVE\\e_eve_tranquility\\cache\\MachoNet\\87.237.38.200\\235\\CachedMethodCalls\\2488.cache'))
         self.start()
 
     def run( self ):
@@ -57,5 +54,4 @@ class Win32FileMonitor( FileMonitor ):
                 #print "ACTION------------------> %s" % action
                 if (action == 3):
                   self.factory.processor.OnNewFile(full_filename)
-                    #self.factory.emit(QtCore.SIGNAL("fileChanged(QString)"), QtCore.QString(full_filename))
 

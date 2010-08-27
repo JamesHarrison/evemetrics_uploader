@@ -1,11 +1,5 @@
 #!/usr/bin/env python
 
-# First run tutorial.glade through gtk-builder-convert with this command:
-# gtk-builder-convert tutorial.glade tutorial.xml
-# Then save this file as tutorial.py and make it executable using this command:
-# chmod a+x tutorial.py
-# And execute it:
-# ./tutorial.py
 import sys, os, time, traceback, pprint, signal, platform, logging, string
 
 from optparse import OptionParser

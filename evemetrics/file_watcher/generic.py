@@ -4,7 +4,7 @@ from threading import Thread
 
 class FileMonitor( Thread ):
     def __init__( self, factory, path, options ):
-        QThread.__init__( self )
+        Thread.__init__( self )
         self.factory = factory
         self.path = path
         self.options = options
@@ -30,11 +30,9 @@ class FileMonitor( Thread ):
         # see what new files may have been added
         new = tree.difference( self.tree )
         if ( len( new ) != 0 ):
-#            pprint.pprint( new )
             for fn in new:
                 fpn = os.path.join( self.path, fn[0] )
-#                pprint.pprint( fpn )
-                self.factory.emit( QtCore.SIGNAL( "fileChanged(QString)" ), QtCore.QString( fpn ) )
+                self.factory.processor.OnNewFile(fpn)
         self.tree = tree
         print '%d files' % len( self.tree )
 

@@ -1,8 +1,5 @@
 import sys, os, time, traceback, errno, logging
 
-from PyQt4 import QtCore
-from PyQt4.QtCore import QThread
-
 import pyinotify
 
 from .generic import FileMonitor
@@ -12,15 +9,15 @@ class EventHandler( pyinotify.ProcessEvent ):
         self.factory = factory
         
     def process_IN_CREATE( self, event ):
-        self.factory.emit( QtCore.SIGNAL( "fileChanged(QString)" ), QtCore.QString( event.pathname ) )
+        self.factory.processor.OnNewFile(event.pathname)
 
     def process_IN_MODIFY( self, event ):
-        self.factory.emit( QtCore.SIGNAL( "fileChanged(QString)" ), QtCore.QString( event.pathname ) )
+        self.factory.processor.OnNewFile(event.pathname)
 
-class PosixFileMonitor( QThread ):
+class PosixFileMonitor( Thread ):
 
     def __init__( self, factory, path, options ):
-        QThread.__init__( self )
+        Thread.__init__( self )
         self.exiting = False
         self.path = path
         self.factory = factory

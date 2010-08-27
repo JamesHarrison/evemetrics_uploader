@@ -22,6 +22,3 @@ class MonitorFactory( Thread ):
 
     def setProcessor( self, processor ):
         self.processor = processor
-        # NOTE: since the children are each their own thread, are we risking re-entrant calls into the processing?
-        # signal_established = QtCore.QObject.connect( self, QtCore.SIGNAL( "fileChanged(QString)" ), processor.OnNewFile )
-        # assert( signal_established )
