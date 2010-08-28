@@ -22,6 +22,7 @@ class Configuration( object ):
     self.default = {'poll': 10, 'verbose': False, 'delete' : True, 'token': ''}
     self.options = Options(self.default)
     self.gui = gui
+    self.tokenValid = False
     cp = ConfigParser.ConfigParser()
     cp.read([os.path.expanduser('~/.emu2.ini')])
     if cp.has_section('emu'):

@@ -46,8 +46,11 @@ class LoggingToGUI( logging.Handler ):
     self.text_widget = text_widget
 
   def emit( self, record ):
-    self.text_widget.AppendText(record.getMessage() + "\n")
-    
+    try:
+      self.text_widget.AppendText(record.getMessage() + "\n")
+    except:
+      print "Error logging to widget:"
+      print record.getMessage()
 
   def updateLoggingLevel( self, level ):
     self.level = level
@@ -57,23 +60,26 @@ class UploaderGui(EMUMainFrame):
     EMUMainFrame.__init__(self, None)
     self.Bind(wx.EVT_CLOSE, self.OnClose)
     
+    # Set up default logging settings    
     self.logging_handler = LoggingToGUI( self.m_textCtrl_log )
-    logging.basicConfig( format = '%(message)s' )
     logging.getLogger('emu').addHandler( self.logging_handler )
     logging.getLogger('emu').setLevel(logging.INFO)
     logger.propagate = False
 
-
+    # load configuration from file
     self.config = Configuration(self)
   
+    # change the logging level if needed
     if ( self.config.options.verbose ):
       self.logging_handler.updateLoggingLevel( logging.DEBUG )
+      logging.getLogger('emu').setLevel(logging.DEBUG)
       logging.basicConfig( format = '%(message)s' )
     
     # Initialize the status bar
     self.m_statusBar = MyStatusBar(self)
     self.SetStatusBar(self.m_statusBar)
     
+    # Config tab should be selected if the token is empty
     if self.config.options.token != "":
       self.m_notebook.ChangeSelection(0)
       self.setStatus('warning', 'Validating application token.')
@@ -89,7 +95,7 @@ class UploaderGui(EMUMainFrame):
     # Start the file monitor
     self.monitor = self.config.createMonitor()
     
-    
+    # Fire up the file monitor
     if ( not self.monitor is None ):
       try:
         self.monitor.Run()
@@ -98,10 +104,12 @@ class UploaderGui(EMUMainFrame):
         self.monitor = None
       else:
         logger.info( 'Uploader ready' )
-        
+
+    # Events to enable the config apply button        
     self.m_textCtrl_appToken.Bind( wx.EVT_TEXT, self.config_changed )
     self.m_checkBox_deleteCacheAfterUpload.Bind( wx.EVT_CHECKBOX, self.config_changed )
     self.m_checkBox_verboseOutput.Bind( wx.EVT_CHECKBOX, self.config_changed )
+    # Event to save save the config
     self.m_button_applyConfig.Bind( wx.EVT_BUTTON, self.apply_configuration )
 
 
@@ -116,7 +124,6 @@ class UploaderGui(EMUMainFrame):
   def config_changed( self, event ):
     self.m_button_applyConfig.Enable()
 
-    
   # Virtual event handlers, overide them in your derived class
   def apply_configuration( self, event ):
     # flip back to main tab
@@ -152,6 +159,7 @@ if __name__ == "__main__":
   # map stdout into the logging facilities,
   # we will achieve --verbose filtering on print calls that way
   #sys.stdout = wrap_to_lineprint( logging.debug )
+  logging.getLogger('emu').setLevel(logging.DEBUG)
   logger = logging.getLogger('emu')
 
   app = wx.App(0)

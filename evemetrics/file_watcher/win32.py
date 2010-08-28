@@ -86,4 +86,4 @@ class Win32FileMonitor( FileMonitor ):
                 #print "ACTION------------------> %s" % action
                 if (action == 3):
                   self._async_watch()
-                  self.factory.queue(full_filename)
+                  self.factory.queue( (5,full_filename) )

@@ -1,7 +1,7 @@
 import httplib, urllib, hashlib, logging
 from xml.dom.minidom import parse, parseString
 import pprint
-
+import time
 logger = logging.getLogger('emu')
 
 class Uploader:
