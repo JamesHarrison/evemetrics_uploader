@@ -75,6 +75,8 @@ ShowUninstDetails show
 
 # Installer sections
 Section -Uploader SEC0000
+    SetOutPath $SMPROGRAMS\$StartMenuGroup
+    CreateShortcut "$SMPROGRAMS\$StartMenuGroup\EVE Metrics Uploader.lnk" $INSTDIR\uploader.exe
     SetOutPath $INSTDIR
     SetOverwrite on
     File /r ..\dist\*
