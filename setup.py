@@ -124,7 +124,7 @@ dll_excludes = ['libgdk-win32-2.0-0.dll', 'libgobject-2.0-0.dll', 'tcl84.dll',
 icon_resources = []
 bitmap_resources = []
 other_resources = []
-other_resources = [(24, 1, MANIFEST_TEMPLATE % dict(prog="EVE-Metrics Uploader 2"))]
+other_resources = [(24, 1, MANIFEST_TEMPLATE % dict(prog="EVE Metrics Uploader 2"))]
 
 
 # This is a place where the user custom code may go. You can do almost
@@ -142,11 +142,11 @@ other_resources = [(24, 1, MANIFEST_TEMPLATE % dict(prog="EVE-Metrics Uploader 2
 # depending on wx widgets you use, you might need to add
 # gdiplus.dll to the above collection
 
-py26MSdll = glob.glob(r"dll\*.*")
+#py26MSdll = glob.glob(r"dll\*.*")
 
 # install the MSVC 9 runtime dll's into the application folder
-data_files += [("", py26MSdll),]
-
+#data_files += [("", py26MSdll),]
+data_files = []
 # I found on some systems one has to put them into sub-folders.
 ##data_files += [("Microsoft.VC90.CRT", py26MSdll),
 ##               ("lib\Microsoft.VC90.CRT", py26MSdll)]
@@ -165,9 +165,9 @@ GUI2Exe_Target_1 = Target(
     other_resources = other_resources,
     dest_base = "uploader",
     version = "0.0.1",
-    company_name = "No Company",
+    company_name = "EVE Metrics",
     copyright = "No Copyrights",
-    name = "Py2Exe Sample File"
+    name = "EVE Metrics Uploader"
     )
 
 

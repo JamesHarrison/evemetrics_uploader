@@ -129,7 +129,6 @@ if __name__ == "__main__":
   ui = UploaderGui(None)
   ui.Show()
   app.MainLoop()
-  sys.exit(0)
 
   
 
