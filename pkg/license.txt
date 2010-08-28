@@ -1,0 +1,31 @@
+EVE Metrics Uploader 2.x
+------------------------
+
+EVE Metrics has been providing the uploader in various forms for about 2 and a half years now, and so far, nobody has been banned from EVE Online for it. If you are banned, it is not our fault. The program however is EULA compatible to the best of our knowledge, and in any case does not provide an unfair advantage since the data is publicly available.
+
+The complete source code is located at http://github.com/JamesHarrison/evemetrics_uploader along with documentation
+
+Licensing
+---------
+
+The MIT License
+
+Copyright (c) 2010 MMMetrics
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
