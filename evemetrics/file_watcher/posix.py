@@ -9,10 +9,11 @@ class EventHandler( pyinotify.ProcessEvent ):
         self.factory = factory
         
     def process_IN_CREATE( self, event ):
-        self.factory.processor.OnNewFile(event.pathname)
+        self.factory.queue(event.pathname)
 
     def process_IN_MODIFY( self, event ):
-        self.factory.processor.OnNewFile(event.pathname)
+        self.factory.queue(event.pathname)
+        
 
 class PosixFileMonitor( Thread ):
 

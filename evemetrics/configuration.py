@@ -30,11 +30,11 @@ class Configuration( object ):
           self.options.__setattr__(string.lower(k), True if string.strip(v) == 'True' else False)
         else:
           self.options.__setattr__(string.lower(k), string.strip(v))
-    
-    logger.info('Current settings:')
-    logger.info('  Token: %r' % self.options.token)
-    logger.info('  Verbose: %r' % self.options.verbose)
-    logger.info('  Delete on upload: %r' % self.options.delete)
+    if self.options.verbose:
+      logger.info('Current settings:')
+      logger.info('  Token: %r' % self.options.token)
+      logger.info('  Verbose: %r' % self.options.verbose)
+      logger.info('  Delete on upload: %r' % self.options.delete)
 
   def saveSettings( self ):
     cp = ConfigParser.ConfigParser()
