@@ -1,6 +1,6 @@
 """Parser for cache files written on top of reverence"""
 
-import csv, StringIO, datetime
+import csv, StringIO, datetime, pprint
 from reverence import blue
 
 # Quick helper function to convert CCP's long date format (Windows timestamp) into a UTC datetime object.
@@ -42,7 +42,7 @@ def parse(filepath):
         order.stationID, order.regionID, order.solarSystemID, 'cache'
       ]
   else:
-    print 'skipping unknown key %s' % pprint.pformat( key )
+    logging.debug('skipping unknown key %s' % pprint.pformat( key ))
     return
   if ( len(key) == 4 ):
     return [ key[1], key[2], key[3], s.getvalue(), wintime_to_datetime( obj['version'][0] ).strftime("%Y-%m-%d %H:%M:%S") ]

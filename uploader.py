@@ -5,7 +5,10 @@ import threading
 from optparse import OptionParser
 from cmdline import ParseWithFile, SaveToFile
 
+import wx
+
 from evemetrics import parser, uploader
+from evemetrics.gui_custom import *
 from evemetrics.configuration import Configuration
 
 from evemetrics.file_watcher.generic import FileMonitor
@@ -13,7 +16,6 @@ from evemetrics.file_watcher.factory import MonitorFactory
 from evemetrics.gui import EMUMainFrame
 from reverence import blue 
 
-import wx
 #from twisted.internet import wxreactor, reactor
 #wxreactor.install()
 
@@ -57,21 +59,32 @@ class UploaderGui(EMUMainFrame):
     logging.basicConfig( level = logging.INFO , format = '%(message)s' )
     logging.getLogger('').addHandler( self.logging_handler )
 
-    self.config = Configuration()
+    self.config = Configuration(self)
   
     if ( self.config.options.verbose ):
       self.logging_handler.updateLoggingLevel( logging.DEBUG )
       logging.basicConfig( level = logging.DEBUG, format = '%(message)s' )
 
-
-
-    print self.config.options.verbose
+    # Initialize the status bar
+    self.m_statusBar = MyStatusBar(self)
+    self.SetStatusBar(self.m_statusBar)
+    
+    if self.config.options.token != "":
+      self.m_notebook.ChangeSelection(0)
+      self.setStatus('warning', 'Validating application token.')
+    else:
+      self.m_notebook.ChangeSelection(1)
+      self.setStatus('error', 'No application token set.')
+    
+    # Update the config tab
     self.m_checkBox_verboseOutput.SetValue(self.config.options.verbose)
     self.m_checkBox_deleteCacheAfterUpload.SetValue(self.config.options.delete)
     self.m_textCtrl_appToken.WriteText(self.config.options.token)
       
+    # Start the file monitor
     self.monitor = self.config.createMonitor()
-
+    
+    
     if ( not self.monitor is None ):
       try:
         self.monitor.Run()
@@ -87,7 +100,9 @@ class UploaderGui(EMUMainFrame):
     logging.info('Exiting...')
     self.monitor.stop()
     self.Destroy()
-          
+  def setStatus(self, icon, text):
+    self.m_statusBar.setStatus(icon, text)
+    
   # Virtual event handlers, overide them in your derived class
   def apply_configuration( self, event ):
     # flip back to main tab
@@ -117,9 +132,6 @@ class UploaderGui(EMUMainFrame):
         logging.info( 'Uploader ready' )
         # write settings out to file for next run
         self.config.saveSettings()
-
-  
-
 
 if __name__ == "__main__":
   # map stdout into the logging facilities,

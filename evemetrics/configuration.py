@@ -16,9 +16,10 @@ class Options( object ):
 
 class Configuration( object ):
 
-  def __init__( self ):
+  def __init__( self, gui ):
     self.default = {'poll': 10, 'verbose': False, 'delete' : True, 'token': ''}
     self.options = Options(self.default)
+    self.gui = gui
     cp = ConfigParser.ConfigParser()
     cp.read([os.path.expanduser('~/.emu2.ini')])
     if cp.has_section('emu'):
@@ -174,8 +175,6 @@ class Configuration( object ):
       eve = blue.EVE( eve_path, "Tranquility", -1, "EN", cache_path )
       self.reverence = eve.getconfigmgr()
       processor = Processor( upload_client, self.reverence )
-
       # points the monitor to the processor, hooks up the signals
       monitor.setProcessor( processor )
-
       return monitor

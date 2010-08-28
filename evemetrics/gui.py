@@ -122,8 +122,8 @@ class EMUMainFrame ( wx.Frame ):
 		bSizer1.Add( self.m_notebook, 1, wx.EXPAND |wx.ALL, 0 )
 		
 		self.SetSizer( bSizer1 )
+		self.m_statusBar = self.CreateStatusBar( 2, wx.ST_SIZEGRIP, wx.ID_ANY )
 		self.Layout()
-		self.m_statusBar = self.CreateStatusBar( 1, wx.ST_SIZEGRIP, wx.ID_ANY )
 		
 		# Connect Events
 		self.m_button_applyConfig.Bind( wx.EVT_BUTTON, self.apply_configuration )
