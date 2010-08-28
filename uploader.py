@@ -99,14 +99,23 @@ class UploaderGui(EMUMainFrame):
       else:
         logger.info( 'Uploader ready' )
         
-       
+    self.m_textCtrl_appToken.Bind( wx.EVT_TEXT, self.config_changed )
+    self.m_checkBox_deleteCacheAfterUpload.Bind( wx.EVT_CHECKBOX, self.config_changed )
+    self.m_checkBox_verboseOutput.Bind( wx.EVT_CHECKBOX, self.config_changed )
+    self.m_button_applyConfig.Bind( wx.EVT_BUTTON, self.apply_configuration )
+
 
   def OnClose(self, event):
     logger.info('Exiting...')
     self.monitor.stop()
     self.Destroy()
+    
   def setStatus(self, icon, text):
     self.m_statusBar.setStatus(icon, text)
+
+  def config_changed( self, event ):
+    self.m_button_applyConfig.Enable()
+
     
   # Virtual event handlers, overide them in your derived class
   def apply_configuration( self, event ):
@@ -137,6 +146,7 @@ class UploaderGui(EMUMainFrame):
         logger.info( 'Uploader ready' )
         # write settings out to file for next run
         self.config.saveSettings()
+    self.m_button_applyConfig.Disable()
 
 if __name__ == "__main__":
   # map stdout into the logging facilities,

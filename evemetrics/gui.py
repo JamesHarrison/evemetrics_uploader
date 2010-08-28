@@ -32,7 +32,7 @@ class EMUMainFrame ( wx.Frame ):
 		self.m_statusPanel.SetSizer( gSizer1 )
 		self.m_statusPanel.Layout()
 		gSizer1.Fit( self.m_statusPanel )
-		self.m_notebook.AddPage( self.m_statusPanel, u"Status", True )
+		self.m_notebook.AddPage( self.m_statusPanel, u"Status", False )
 		self.m_configurePanel = wx.Panel( self.m_notebook, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL )
 		bSizer_Config = wx.BoxSizer( wx.VERTICAL )
 		
@@ -91,8 +91,10 @@ class EMUMainFrame ( wx.Frame ):
 		
 		gbSizer1.Add( self.m_button_addPath, wx.GBPosition( 2, 0 ), wx.GBSpan( 1, 1 ), wx.ALL, 5 )
 		
-		m_listBox_evePathsChoices = [ u"C:Some_path" ]
+		m_listBox_evePathsChoices = []
 		self.m_listBox_evePaths = wx.ListBox( self.m_configurePanel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, m_listBox_evePathsChoices, wx.LB_HSCROLL|wx.LB_SINGLE )
+		self.m_listBox_evePaths.Enable( False )
+		
 		gbSizer1.Add( self.m_listBox_evePaths, wx.GBPosition( 1, 0 ), wx.GBSpan( 1, 2 ), wx.ALL|wx.EXPAND, 5 )
 		
 		self.m_button_delPath = wx.Button( self.m_configurePanel, wx.ID_ANY, u"Delete Selected Cache Path", wx.DefaultPosition, wx.DefaultSize, 0 )
@@ -110,6 +112,8 @@ class EMUMainFrame ( wx.Frame ):
 		bSizer_bottom.AddSpacer( ( 0, 0), 1, wx.EXPAND, 5 )
 		
 		self.m_button_applyConfig = wx.Button( self.m_configurePanel, wx.ID_ANY, u"Apply settings", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_button_applyConfig.Enable( False )
+		
 		bSizer_bottom.Add( self.m_button_applyConfig, 0, wx.ALIGN_RIGHT|wx.ALL, 5 )
 		
 		bSizer_Config.Add( bSizer_bottom, 0, wx.EXPAND, 5 )
@@ -117,15 +121,21 @@ class EMUMainFrame ( wx.Frame ):
 		self.m_configurePanel.SetSizer( bSizer_Config )
 		self.m_configurePanel.Layout()
 		bSizer_Config.Fit( self.m_configurePanel )
-		self.m_notebook.AddPage( self.m_configurePanel, u"Configuration", False )
+		self.m_notebook.AddPage( self.m_configurePanel, u"Configuration", True )
 		
 		bSizer1.Add( self.m_notebook, 1, wx.EXPAND |wx.ALL, 0 )
 		
+		self.m_bitmap1 = wx.StaticBitmap( self, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_bitmap1.Hide()
+		
+		bSizer1.Add( self.m_bitmap1, 0, wx.ALL, 5 )
+		
 		self.SetSizer( bSizer1 )
-		self.m_statusBar = self.CreateStatusBar( 2, wx.ST_SIZEGRIP, wx.ID_ANY )
 		self.Layout()
+		self.m_statusBar = self.CreateStatusBar( 2, wx.ST_SIZEGRIP, wx.ID_ANY )
 		
 		# Connect Events
+		self.m_checkBox_verboseOutput.Bind( wx.EVT_CHECKBOX, self.config_changed )
 		self.m_button_applyConfig.Bind( wx.EVT_BUTTON, self.apply_configuration )
 	
 	def __del__( self ):
@@ -133,6 +143,9 @@ class EMUMainFrame ( wx.Frame ):
 	
 	
 	# Virtual event handlers, overide them in your derived class
+	def config_changed( self, event ):
+		event.Skip()
+	
 	def apply_configuration( self, event ):
 		event.Skip()
 	
