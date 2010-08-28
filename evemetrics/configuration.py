@@ -4,6 +4,8 @@ from evemetrics.file_watcher.factory import MonitorFactory
 from evemetrics import parser, uploader
 from evemetrics.processor import Processor
 from reverence import blue
+
+logger = logging.getLogger('emu')
 # this object has process lifespan:
 # - it is used to load/save/guess settings
 # - it is used to apply/change settings
@@ -29,10 +31,10 @@ class Configuration( object ):
         else:
           self.options.__setattr__(string.lower(k), string.strip(v))
     
-    logging.info('Current settings:')
-    logging.info('  Token: %r' % self.options.token)
-    logging.info('  Verbose: %r' % self.options.verbose)
-    logging.info('  Delete on upload: %r' % self.options.delete)
+    logger.info('Current settings:')
+    logger.info('  Token: %r' % self.options.token)
+    logger.info('  Verbose: %r' % self.options.verbose)
+    logger.info('  Delete on upload: %r' % self.options.delete)
 
   def saveSettings( self ):
     cp = ConfigParser.ConfigParser()
@@ -40,7 +42,7 @@ class Configuration( object ):
     for k,v in self.default.items():
       cp.set('emu', k, getattr(self.options, k))
     cp.write(open(os.path.expanduser('~/.emu2.ini'), "w"))
-    logging.info( 'Configuration saved' )
+    logger.info( 'Configuration saved' )
 
   # this returns a new monitor, processor, uploader chain based on current settings
   # it will try to guess values if they are missing
@@ -48,14 +50,14 @@ class Configuration( object ):
   # this may be called several times during the lifespan of the process when settings are modified
   def createMonitor( self ):
       if ( self.options.token is None ):
-        logging.error( 'Upload token needs to be set.' )
+        logger.error( 'Upload token needs to be set.' )
         # no point continuing without a valid token
         return
       
       # the cache path can be explicitely set, if not we rely on autodetection
       checkpath = None #self.options.path
       if ( checkpath is None ):
-        logging.info( 'Looking for your EVE cache in the usual locations' )
+        logger.info( 'Looking for your EVE cache in the usual locations' )
         if ( platform.system() == 'Windows' ):
           checkpath = os.path.join( os.environ['LOCALAPPDATA'], 'CCP', 'EVE' )
         elif ( platform.system() == 'Linux' ):
@@ -64,7 +66,7 @@ class Configuration( object ):
         elif ( platform.system() == 'Darwin' ):
           checkpath = os.path.expanduser( '~/Library/Preferences/EVE Online Preferences/p_drive/Local Settings/Application Data/CCP/EVE' )
       if ( not os.path.isdir( checkpath ) ):
-        logging.error( '%r doesn\'t exist. Cache path not found.' % checkpath )
+        logger.error( '%r doesn\'t exist. Cache path not found.' % checkpath )
         return
 
       # now build a list of the cache folders to monitor
@@ -75,12 +77,12 @@ class Configuration( object ):
         # the Windows path tries some path reconstruction, but with only wine 32 bit it's probably easier to just go to the right path
         eve_path = os.path.expanduser( '~/.wine/drive_c/Program Files/CCP/EVE' )
         if ( not os.path.isdir( eve_path ) ):
-          logging.error( '%r doesn\'t exist. Base EVE install not found.' % eve_path )
+          logger.error( '%r doesn\'t exist. Base EVE install not found.' % eve_path )
           return
       elif ( platform.system() == 'Darwin' ):
         eve_path = '/Applications/EVE Online.app'
         if ( not os.path.isdir( eve_path ) ):
-          logging.error( '%r doesn\'t exist. Base EVE install not found.' % eve_path )
+          logger.error( '%r doesn\'t exist. Base EVE install not found.' % eve_path )
           return
 
       for installation in os.listdir( checkpath ):
@@ -106,7 +108,7 @@ class Configuration( object ):
           if ( platform.system() == 'Windows' ):
             base_path = "%s:\\" % parts.pop( 0 )
 
-          logging.debug( 'base_path: %r' % base_path )
+          logger.debug( 'base_path: %r' % base_path )
 
           next_folder = None
           while ( not eve_path ):
@@ -121,7 +123,7 @@ class Configuration( object ):
             if ( os.path.isdir( os.path.join( base_path, next_folder ) ) ):
               base_path = os.path.join( base_path, next_folder )
               next_folder = ""
-              #logging.debug( "Set basepath to %s", base_path )
+              #logger.debug( "Set basepath to %s", base_path )
             if ( os.path.isdir( os.path.join( base_path, 'bulkdata' ) ) ):
               # we finally found an installation
               eve_path = base_path
@@ -129,42 +131,42 @@ class Configuration( object ):
             #print next_folder
 
       if ( eve_path ):
-        logging.info( "Found EVE installation: %s", eve_path )
+        logger.info( "Found EVE installation: %s", eve_path )
       else:
-        logging.error( "Unable to locate your EVE installation." )
+        logger.error( "Unable to locate your EVE installation." )
         return
 
       if ( len( cache_folders ) == 0 ):
-          logging.error( 'Could not find any valid cache folders under the cache path %r - invalid cache path?' % checkpath )
+          logger.error( 'Could not find any valid cache folders under the cache path %r - invalid cache path?' % checkpath )
           return
       else:
-          logging.info( 'Base cache path is %s' % checkpath )
-          logging.info( 'Monitoring the following subdirectory(es):' )
+          logger.info( 'Base cache path is %s' % checkpath )
+          logger.info( 'Monitoring the following subdirectory(es):' )
           for c in cache_folders:
-              logging.info( c.replace( checkpath, '' ) )
+              logger.info( c.replace( checkpath, '' ) )
 
       # we can instanciate the filesystem monitor
       monitor = None
       if ( platform.system() == 'Windows' ):
-          logging.info( 'Loading win32 file monitor' )
+          logger.info( 'Loading win32 file monitor' )
           try:
               from evemetrics.file_watcher.win32 import Win32FileMonitor
               monitor = MonitorFactory( Win32FileMonitor, cache_folders, self )
           except ImportError, e:
               traceback.print_exc()
-              logging.error( 'Could not load the win32 optimized file monitor.' )
+              logger.error( 'Could not load the win32 optimized file monitor.' )
       elif ( platform.system() == 'Linux' ):
-          logging.info( 'Loading inotify file monitor' )
+          logger.info( 'Loading inotify file monitor' )
           try:
               from evemetrics.file_watcher.posix import PosixFileMonitor
               monitor = MonitorFactory( PosixFileMonitor, cache_folders, self )                
           except:
               traceback.print_exc()
-              logging.error( 'Could not load the Linux optimized file monitor or initialization error. Check your pyinotify installation.' )
+              logger.error( 'Could not load the Linux optimized file monitor or initialization error. Check your pyinotify installation.' )
           pass
 
       if ( monitor is None ):
-          logging.info( 'Loading generic file monitor' )
+          logger.info( 'Loading generic file monitor' )
           from evemetrics.file_watcher.generic import FileMonitor
           monitor = MonitorFactory( FileMonitor, cache_folders, self )
 

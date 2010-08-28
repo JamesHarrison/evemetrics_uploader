@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import sys, os, time, traceback, pprint, signal, platform, logging, string
+import logging.handlers
+
 import threading
 from optparse import OptionParser
 from cmdline import ParseWithFile, SaveToFile
@@ -56,15 +58,18 @@ class UploaderGui(EMUMainFrame):
     self.Bind(wx.EVT_CLOSE, self.OnClose)
     
     self.logging_handler = LoggingToGUI( self.m_textCtrl_log )
-    logging.basicConfig( level = logging.INFO , format = '%(message)s' )
-    logging.getLogger('').addHandler( self.logging_handler )
+    logging.basicConfig( format = '%(message)s' )
+    logging.getLogger('emu').addHandler( self.logging_handler )
+    logging.getLogger('emu').setLevel(logging.INFO)
+    logger.propagate = False
+
 
     self.config = Configuration(self)
   
     if ( self.config.options.verbose ):
       self.logging_handler.updateLoggingLevel( logging.DEBUG )
-      logging.basicConfig( level = logging.DEBUG, format = '%(message)s' )
-
+      logging.basicConfig( format = '%(message)s' )
+    
     # Initialize the status bar
     self.m_statusBar = MyStatusBar(self)
     self.SetStatusBar(self.m_statusBar)
@@ -92,12 +97,12 @@ class UploaderGui(EMUMainFrame):
         traceback.print_exc()
         self.monitor = None
       else:
-        logging.info( 'Uploader ready' )
+        logger.info( 'Uploader ready' )
         
        
 
   def OnClose(self, event):
-    logging.info('Exiting...')
+    logger.info('Exiting...')
     self.monitor.stop()
     self.Destroy()
   def setStatus(self, icon, text):
@@ -107,29 +112,29 @@ class UploaderGui(EMUMainFrame):
   def apply_configuration( self, event ):
     # flip back to main tab
     self.m_notebook.SendPageChangingEvent( 0 )
-    logging.info('')
+    logger.info('')
     if ( not self.monitor is None ):
-        logging.info( 'Tearing down existing monitor' )
+        logger.info( 'Tearing down existing monitor' )
         self.monitor.stop()
-    logging.info( 'Applying settings' )
+    logger.info( 'Applying settings' )
 
     # update verbose status
     self.config.options.verbose = self.m_checkBox_verboseOutput.IsChecked()
     self.config.options.delete = self.m_checkBox_deleteCacheAfterUpload.IsChecked()
     if ( self.config.options.verbose ):
-        logging.getLogger('').setLevel( logging.DEBUG )
+        logging.getLogger('emu').setLevel( logging.DEBUG )
     else:
-        logging.getLogger('').setLevel( logging.INFO )
+        logging.getLogger('emu').setLevel( logging.INFO )
     self.config.options.token = self.m_textCtrl_appToken.GetValue()
     try:
         self.monitor = self.config.createMonitor()
         if ( not self.monitor is None ):
             self.monitor.Run()
     except:
-        logging.error("Could not restart file monitor: %s" % traceback.print_exc())
+        logger.error("Could not restart file monitor: %s" % traceback.print_exc())
         self.monitor = None
     else:
-        logging.info( 'Uploader ready' )
+        logger.info( 'Uploader ready' )
         # write settings out to file for next run
         self.config.saveSettings()
 
@@ -137,6 +142,8 @@ if __name__ == "__main__":
   # map stdout into the logging facilities,
   # we will achieve --verbose filtering on print calls that way
   #sys.stdout = wrap_to_lineprint( logging.debug )
+  logger = logging.getLogger('emu')
+
   app = wx.App(0)
   ui = UploaderGui(None)
   ui.Show()

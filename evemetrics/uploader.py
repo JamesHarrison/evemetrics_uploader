@@ -2,6 +2,8 @@ import httplib, urllib, hashlib, logging
 from xml.dom.minidom import parse, parseString
 import pprint
 
+logger = logging.getLogger('emu')
+
 class Uploader:
   def __init__(self):
     self.token = ''
@@ -35,7 +37,7 @@ class Uploader:
         'Content-Type': 'application/x-www-form-urlencoded'
         } )
     response = conn.getresponse()
-    logging.debug("%s, %s" % (response.status, response.reason))
+    logger.debug("%s, %s" % (response.status, response.reason))
     if detail:
       try:
         parser = parseString(response.read())
@@ -50,7 +52,7 @@ class Uploader:
           attributes = parser.getElementsByTagName("error")[0].attributes
           return (int(attributes.item(1).value), attributes.item(0).value)
       except:
-        logging.exception('Error parsing HTTPResponse')
+        logger.exception('Error parsing HTTPResponse')
         return (403, 'Could not parse server response.')
     else:
       conn.close()
@@ -71,7 +73,7 @@ class Uploader:
                   'Content-Type': 'application/x-www-form-urlencoded'
                   } )
     response = conn.getresponse()
-    logging.debug("%s, %s" % (response.status, response.reason))
+    logger.debug("%s, %s" % (response.status, response.reason))
     try:
       node = parseString(response.read()).getElementsByTagName("token")[0]
       attributes = node.attributes
@@ -81,6 +83,6 @@ class Uploader:
       else:
         return ((attributes.item(0).value == 'ok'), node.firstChild.data)
     except:
-      logging.exception('Error parsing HTTPResponse')
+      logger.exception('Error parsing HTTPResponse')
       return (False, 'error')
     

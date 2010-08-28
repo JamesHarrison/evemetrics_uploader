@@ -1,6 +1,7 @@
 import wx
 import time
 from evemetrics.icons import *
+import logging
 class MyStatusBar(wx.StatusBar):
   def __init__(self, parent):
     wx.StatusBar.__init__(self, parent)

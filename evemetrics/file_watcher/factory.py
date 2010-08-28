@@ -20,6 +20,7 @@ class MonitorFactory( Thread ):
       for monitor in self.children:
         monitor.__del__()
         monitor.join()
+      self.join()
         
     def Run( self ):
         for child in self.children:

@@ -9,6 +9,8 @@ from .generic import FileMonitor
 from threading import Thread
 import logging
 
+logger = logging.getLogger('emu')
+
 class Win32FileMonitor( FileMonitor ):
 
     def __init__( self, factory, path, options ):
@@ -53,12 +55,12 @@ class Win32FileMonitor( FileMonitor ):
             )
             
         except pywintypes.error, e:
-            logging.error("Invalid cache file path: %s" % e)
+            logger.error("Invalid cache file path: %s" % e)
             return
         try:
           self._async_watch()
         except win32file.error, exc:
-            logging.error("Failed to read directory changes for '%s'" % self.path)
+            logger.error("Failed to read directory changes for '%s'" % self.path)
 
         while not self.exiting:
             rc = win32event.WaitForMultipleObjects([self.stop_event,self.overlapped.hEvent], False, 1000)
@@ -73,14 +75,14 @@ class Win32FileMonitor( FileMonitor ):
             try:
                 bytes = win32file.GetOverlappedResult(self.hDir, self.overlapped, True)
             except win32file.error, exc:
-                logging.warning("Failed to get directory changes for '%s':\n %s" % (self.path, exc))
+                logger.warning("Failed to get directory changes for '%s':\n %s" % (self.path, exc))
                 continue
 
             results = win32file.FILE_NOTIFY_INFORMATION(self.buffer, bytes)
 
             for action, file in results:
                 full_filename = os.path.join (self.path, file)
-                logging.debug("FileChanged: %s %s" % (action, file))
+                logger.debug("FileChanged: %s %s" % (action, file))
                 #print "ACTION------------------> %s" % action
                 if (action == 3):
                   self._async_watch()
