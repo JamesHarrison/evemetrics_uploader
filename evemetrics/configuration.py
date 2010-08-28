@@ -20,24 +20,24 @@ class Configuration( object ):
     self.default = {'poll': 10, 'verbose': False, 'delete' : True, 'token': ''}
     self.options = Options(self.default)
     cp = ConfigParser.ConfigParser()
-    print os.path.expanduser('~/.emu2.ini')
     cp.read([os.path.expanduser('~/.emu2.ini')])
-    print cp.items('DEFAULT')
-    for k,v in cp.items('DEFAULT'):
-      if (string.lower(k) == 'verbose' or string.lower(k) == 'delete'): 
-        self.options.__setattr__(string.lower(k), bool(v))
-      else:
-        self.options.__setattr__(string.lower(k), string.strip(v))
+    if cp.has_section('emu'):
+      for k,v in cp.items('emu'):
+        if (string.lower(k) == 'verbose' or string.lower(k) == 'delete'): 
+          self.options.__setattr__(string.lower(k), True if string.strip(v) == 'True' else False)
+        else:
+          self.options.__setattr__(string.lower(k), string.strip(v))
     
-    print 'Current settings:'
-    print '  Token: %r' % self.options.token
-    print '  Verbose: %r' % self.options.verbose
-    print '  Delete on upload: %r' % self.options.delete
+    logging.info('Current settings:')
+    logging.info('  Token: %r' % self.options.token)
+    logging.info('  Verbose: %r' % self.options.verbose)
+    logging.info('  Delete on upload: %r' % self.options.delete)
 
   def saveSettings( self ):
     cp = ConfigParser.ConfigParser()
+    cp.add_section('emu')
     for k,v in self.default.items():
-      cp.set('DEFAULT', k, getattr(self.options, k))
+      cp.set('emu', k, getattr(self.options, k))
     cp.write(open(os.path.expanduser('~/.emu2.ini'), "w"))
     logging.info( 'Configuration saved' )
 
@@ -105,7 +105,7 @@ class Configuration( object ):
           if ( platform.system() == 'Windows' ):
             base_path = "%s:\\" % parts.pop( 0 )
 
-          print 'base_path: %r' % base_path
+          logging.debug( 'base_path: %r' % base_path )
 
           next_folder = None
           while ( not eve_path ):

@@ -15,8 +15,7 @@ import wx, logging
 
 class EMUMainFrame ( wx.Frame ):
   
-  def __init__( self, parent, config ):
-    self.config = config
+  def __init__( self, parent ):
     wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = u"EVE Metrics Uploader 2", pos = wx.DefaultPosition, size = wx.Size( 380,500 ), style = wx.CAPTION|wx.CLOSE_BOX|wx.MINIMIZE_BOX|wx.RESIZE_BORDER|wx.SYSTEM_MENU|wx.TAB_TRAVERSAL )
     
     self.SetSizeHintsSz( wx.Size( 380,500 ), wx.DefaultSize )
