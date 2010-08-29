@@ -97,13 +97,16 @@ geticonBitmap = icon.GetBitmap
 
 #----------------------------------------------------------------------
 icon_ico = PyEmbeddedImage(
-    "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABHNCSVQICAgIfAhkiAAAAR5J"
-    "REFUWIXtl7GOwjAMhm0n9zwMfQcWJoaysXYFZh7i5mNlayUQQxfegYHnIbVvuaLrKaREiikn"
-    "9R9tt/nk1spvLOa5hYB2x8qF8v9eWJxL8SaInDCb3XRBxTy3Wp2wSOR9MVnj+AXNt8Ls/QfY"
-    "ATzKpRRpHzACjABvDxA9Zpd9FYTOljmrAsQekAzgsq8oW+Zczyaf5sNyc3OdTrSxWX3dtLVJ"
-    "Ab4OJQEAn1bb9c890Xn2HqsXm7Y2KcAvCSKKAHQuMV9MCwBFBAEAO1Se2DMafAxHgMEB1A1H"
-    "n+lVB+jzkmoArZEtziUjUfPI3ql3AImakMFVBxBmGzK4g0/B4ADRiwkSOV8utv4O0LOYmL9x"
-    "YTa+bxpb/zbC2PU8df034e+kSHXtveAAAAAASUVORK5CYII=")
+    "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABHNCSVQICAgIfAhkiAAAAalJ"
+    "REFUWIXtl81LAkEYxt9ZJygUwUMN5deSEYQnkUIM7IOI7A/oZNBR6S/oUIcSOnqKrl065DVI"
+    "69BBqUMgXgvayi90KbFD1mV3p4t5SMdYYtjLvtfnmXl+DO/M8CJKKRhZ6Ck46WGJL3JdPahm"
+    "5WsaUXgB4PRZOscSieitZXKZDQCocQOQJMnLEpvtD6FYvMOhpU1e+YARQkxRsFg0bsk/GbwD"
+    "TAATwAT4q7AeMwUAjQ5+GgQkAPtl+SdAdjviOFzfShRubh2/QygABOfDrZ2Lk+PoUa7FBSAZ"
+    "i9sX7Z7E9JDN1Q+AOCeqyVj8NArABwAAAGOsCgj1HDPtaHr3M7wJTQATwHAA3ddQT60IeZw6"
+    "z5P2Q52ZwxUglS6Qy4VY+k0sOw0BaJcl/Ppccr83Gm6Wh3sPIAEN/L0Mb0LDAfCg2VBT1R5A"
+    "TVWFfmuoTn8XwOfzlVgiEb21QLPcnQtD4VllBkYr1sdhrd9v6Jny1T5hTIFOXiAwp9z7/RXZ"
+    "amP2ga7hdB8hvOoaIYSMW/r5ZbmuXlW/5D1KFQCAZZTDu641IjL8AADI6PH8G0GomC7689gR"
+    "AAAAAElFTkSuQmCC")
 geticon_icoData = icon_ico.GetData
 geticon_icoImage = icon_ico.GetImage
 geticon_icoBitmap = icon_ico.GetBitmap

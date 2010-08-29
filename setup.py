@@ -121,7 +121,7 @@ packages = ['reverence', 'sip']
 dll_excludes = ['libgdk-win32-2.0-0.dll', 'libgobject-2.0-0.dll', 'tcl84.dll',
                 'tk84.dll',
                 'MSVCP90.dll', 'mswsock.dll', 'powrprof.dll']
-icon_resources = []
+icon_resources = [(1, "icons/icon_ico.ico")]
 bitmap_resources = []
 other_resources = []
 other_resources = [(24, 1, MANIFEST_TEMPLATE % dict(prog="EVE Metrics Uploader 2"))]
