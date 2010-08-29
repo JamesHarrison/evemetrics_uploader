@@ -177,7 +177,7 @@ class Configuration( object ):
       # the processor only needs to know about the upload client
       eve = blue.EVE( eve_path, "Tranquility", -1, "EN", cache_path )
       self.reverence = eve.getconfigmgr()
-      processor = Processor( upload_client, self.reverence )
+      processor = Processor( upload_client, self.reverence, self )
       # points the monitor to the processor, hooks up the signals
       monitor.setProcessor( processor )
       return monitor

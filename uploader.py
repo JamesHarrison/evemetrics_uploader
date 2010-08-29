@@ -181,8 +181,10 @@ class UploaderGui(EMUMainFrame):
     self.config.options.delete = self.m_checkBox_deleteCacheAfterUpload.IsChecked()
     if ( self.config.options.verbose ):
         logging.getLogger('emu').setLevel( logging.DEBUG )
+        self.logging_handler.updateLoggingLevel( logging.DEBUG )
     else:
         logging.getLogger('emu').setLevel( logging.INFO )
+        self.logging_handler.updateLoggingLevel( logging.INFO )
     self.config.options.token = self.m_textCtrl_appToken.GetValue()
     try:
         self.monitor = self.config.createMonitor()
