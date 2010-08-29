@@ -59,14 +59,18 @@ class LoggingToGUI( logging.Handler ):
     self.level = level
 
 class UploaderGui(EMUMainFrame):       
-  def __init__(self, parent):
+  def __init__(self, parent, quiet):
+    self.quiet = quiet
+    
     EMUMainFrame.__init__(self, None)
+    
+    # Hide into the taskbar if --quiet is passed
     
     # Make the window bigger on linux - ubuntus default font size is too big
     if platform.system() == 'Linux':
       self.SetSizeHintsSz( wx.Size( 450,500 ), wx.DefaultSize )
     
-      self.VERSION = VERSION
+    self.VERSION = VERSION
     self.Bind(wx.EVT_CLOSE, self.OnClose)
     
     # Set up default logging settings    
@@ -197,12 +201,14 @@ if __name__ == "__main__":
   # map stdout into the logging facilities,
   # we will achieve --verbose filtering on print calls that way
   #sys.stdout = wrap_to_lineprint( logging.debug )
+  quiet = (len(sys.argv) == 2 and sys.argv[1] == '--quiet')
   logging.getLogger('emu').setLevel(logging.DEBUG)
   logger = logging.getLogger('emu')
 
   app = wx.App(0)
-  ui = UploaderGui(None)
-  ui.Show()
+  ui = UploaderGui(None, quiet)
+  if not quiet:
+    ui.Show()
   app.MainLoop()
 
   
