@@ -1,7 +1,7 @@
 import sys, os, time, traceback, errno, logging
 
 import pyinotify
-
+from threading import Thread
 from .generic import FileMonitor
 
 class EventHandler( pyinotify.ProcessEvent ):
@@ -34,7 +34,6 @@ class PosixFileMonitor( Thread ):
 
     def __del__(self):
         self.exiting = True
-        self.wait()    
 
     # this is our code asking the threads to start
     def Run( self ):

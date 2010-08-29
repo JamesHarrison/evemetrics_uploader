@@ -1,4 +1,4 @@
-import logging, platform, os, ConfigParser, string
+import logging, platform, os, ConfigParser, string, traceback
 
 from evemetrics.file_watcher.factory import MonitorFactory
 from evemetrics import parser, uploader
@@ -85,11 +85,11 @@ class Configuration( object ):
         if ( not os.path.isdir( eve_path ) ):
           logger.error( '%r doesn\'t exist. Base EVE install not found.' % eve_path )
           return
-
       for installation in os.listdir( checkpath ):
         installation_paths = os.path.join( checkpath, installation, 'cache', 'MachoNet', '87.237.38.200' )
         if ( not os.path.isdir( installation_paths ) ):
           continue
+
         if not cache_path:
           cache_path = os.path.join( checkpath, installation, 'cache')
         # lets find the newest machonet version

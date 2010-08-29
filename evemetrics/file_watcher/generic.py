@@ -3,11 +3,11 @@ import sys, os, time, traceback, platform
 from threading import Thread
 
 class FileMonitor( Thread ):
-    def __init__( self, factory, path, options ):
+    def __init__( self, factory, path, config ):
         Thread.__init__( self )
         self.factory = factory
         self.path = path
-        self.options = options
+        self.config = config
         self.exiting = False
         self.tree = None
 
@@ -34,13 +34,12 @@ class FileMonitor( Thread ):
                 fpn = os.path.join( self.path, fn[0] )
                 self.factory.queue( (5, fpn) )
         self.tree = tree
-        print '%d files' % len( self.tree )
 
     # this is the thread's entry point
     def run( self ):
         self.Scan() # prime the tree
         while ( True ):
-            time.sleep( self.options.poll )
+            time.sleep( self.config.options.poll )
             self.Scan()
 
     # this is our code asking the threads to start
@@ -49,4 +48,3 @@ class FileMonitor( Thread ):
         
     def __del__( self ):
         self.exiting = True
-        self.wait()

@@ -61,7 +61,12 @@ class LoggingToGUI( logging.Handler ):
 class UploaderGui(EMUMainFrame):       
   def __init__(self, parent):
     EMUMainFrame.__init__(self, None)
-    self.VERSION = VERSION
+    
+    # Make the window bigger on linux - ubuntus default font size is too big
+    if platform.system() == 'Linux':
+      self.SetSizeHintsSz( wx.Size( 450,500 ), wx.DefaultSize )
+    
+      self.VERSION = VERSION
     self.Bind(wx.EVT_CLOSE, self.OnClose)
     
     # Set up default logging settings    
@@ -80,6 +85,7 @@ class UploaderGui(EMUMainFrame):
       logging.basicConfig( format = '%(message)s' )
     
     # Initialize the status bar
+    self.m_statusBar.Destroy()
     self.m_statusBar = MyStatusBar(self)
     self.SetStatusBar(self.m_statusBar)
     
@@ -146,7 +152,8 @@ class UploaderGui(EMUMainFrame):
   def OnClose(self, event):
     logger.info('Exiting...')
     self.tbIcon.Destroy()
-    self.monitor.stop()
+    if self.monitor:
+      self.monitor.stop()
     self.Destroy()
     
   def setStatus(self, icon, text):
