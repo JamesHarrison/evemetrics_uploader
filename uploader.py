@@ -8,6 +8,8 @@ from optparse import OptionParser
 from cmdline import ParseWithFile, SaveToFile
 
 import wx
+from wx import TaskBarIcon
+from evemetrics.icons import *
 
 from evemetrics import parser, uploader
 from evemetrics.gui_custom import *
@@ -21,7 +23,7 @@ from reverence import blue
 
 #from twisted.internet import wxreactor, reactor
 #wxreactor.install()
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 
 # present a stream friendly API (for instance to replace sys.stdout)
 # and pass this to a callable that's line based
@@ -113,11 +115,37 @@ class UploaderGui(EMUMainFrame):
     self.m_checkBox_verboseOutput.Bind( wx.EVT_CHECKBOX, self.config_changed )
     # Event to save save the config
     self.m_button_applyConfig.Bind( wx.EVT_BUTTON, self.apply_configuration )
+    
+    
+    if ( platform.system() == 'Windows' ):
+      self.SetIcon(icon_ico.GetIcon())
+    else:
+      self.SetIcon(icon.GetIcon())
+    # set up the tray icon
+    self.tbIcon = TaskBarIcon()
+    self.tbIcon.SetIcon(icon.GetIcon(), "EVE Metrics Uploader")
+    self.tbIcon.Bind(wx.EVT_TASKBAR_LEFT_UP, self.OnTaskBarLeftClick)
+    self.tbIcon.Bind(wx.EVT_TASKBAR_RIGHT_UP, self.OnTaskBarLeftClick)
+    self.Bind(wx.EVT_ICONIZE, self.OnIconify)
+    
+    # check for new versions
     self.checker = UpdateChecker( self )
     self.checker.Run()
+    
+  def OnIconify( self, event ):
+    if self.IsShown():
+      self.Hide()
+
+  def OnTaskBarLeftClick( self, event):
+    if self.IsIconized():
+      self.Iconize(False)
+    if not self.IsShown():
+      self.Show(True)
+      self.Raise()
 
   def OnClose(self, event):
     logger.info('Exiting...')
+    self.tbIcon.Destroy()
     self.monitor.stop()
     self.Destroy()
     

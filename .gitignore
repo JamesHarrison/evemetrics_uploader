@@ -2,3 +2,4 @@
 dll/*
 build/*
 dist/*
+pkg/*
