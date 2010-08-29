@@ -11,6 +11,7 @@ import wx
 
 from evemetrics import parser, uploader
 from evemetrics.gui_custom import *
+from evemetrics.update_checker import UpdateChecker
 from evemetrics.configuration import Configuration
 
 from evemetrics.file_watcher.generic import FileMonitor
@@ -20,7 +21,7 @@ from reverence import blue
 
 #from twisted.internet import wxreactor, reactor
 #wxreactor.install()
-
+VERSION = '0.0.1'
 
 # present a stream friendly API (for instance to replace sys.stdout)
 # and pass this to a callable that's line based
@@ -58,6 +59,7 @@ class LoggingToGUI( logging.Handler ):
 class UploaderGui(EMUMainFrame):       
   def __init__(self, parent):
     EMUMainFrame.__init__(self, None)
+    self.VERSION = VERSION
     self.Bind(wx.EVT_CLOSE, self.OnClose)
     
     # Set up default logging settings    
@@ -91,7 +93,7 @@ class UploaderGui(EMUMainFrame):
     self.m_checkBox_verboseOutput.SetValue(self.config.options.verbose)
     self.m_checkBox_deleteCacheAfterUpload.SetValue(self.config.options.delete)
     self.m_textCtrl_appToken.WriteText(self.config.options.token)
-      
+    
     # Start the file monitor
     self.monitor = self.config.createMonitor()
     
@@ -111,7 +113,8 @@ class UploaderGui(EMUMainFrame):
     self.m_checkBox_verboseOutput.Bind( wx.EVT_CHECKBOX, self.config_changed )
     # Event to save save the config
     self.m_button_applyConfig.Bind( wx.EVT_BUTTON, self.apply_configuration )
-
+    self.checker = UpdateChecker( self )
+    self.checker.Run()
 
   def OnClose(self, event):
     logger.info('Exiting...')
