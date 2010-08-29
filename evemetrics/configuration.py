@@ -22,6 +22,7 @@ class Configuration( object ):
     self.default = {'poll': 10, 'verbose': False, 'delete' : True, 'token': ''}
     self.options = Options(self.default)
     self.gui = gui
+    self.tokenValid = False
     cp = ConfigParser.ConfigParser()
     cp.read([os.path.expanduser('~/.emu2.ini')])
     if cp.has_section('emu'):
@@ -30,11 +31,11 @@ class Configuration( object ):
           self.options.__setattr__(string.lower(k), True if string.strip(v) == 'True' else False)
         else:
           self.options.__setattr__(string.lower(k), string.strip(v))
-    
-    logger.info('Current settings:')
-    logger.info('  Token: %r' % self.options.token)
-    logger.info('  Verbose: %r' % self.options.verbose)
-    logger.info('  Delete on upload: %r' % self.options.delete)
+    if self.options.verbose:
+      logger.info('Current settings:')
+      logger.info('  Token: %r' % self.options.token)
+      logger.info('  Verbose: %r' % self.options.verbose)
+      logger.info('  Delete on upload: %r' % self.options.delete)
 
   def saveSettings( self ):
     cp = ConfigParser.ConfigParser()

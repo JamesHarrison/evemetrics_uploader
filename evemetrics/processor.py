@@ -44,5 +44,6 @@ class Processor( object ):
                 # We should manage some sort of backlog if evemetrics is down
         except:
             traceback.print_exc()
+            logger.exception('Processor Exception')
         else:
-            logger.debug(ret)
+          return ret

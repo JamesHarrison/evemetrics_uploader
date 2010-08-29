@@ -32,7 +32,7 @@ class FileMonitor( Thread ):
         if ( len( new ) != 0 ):
             for fn in new:
                 fpn = os.path.join( self.path, fn[0] )
-                self.factory.processor.OnNewFile(fpn)
+                self.factory.queue( (5, fpn) )
         self.tree = tree
         print '%d files' % len( self.tree )
 
