@@ -23,7 +23,7 @@ from reverence import blue
 
 #from twisted.internet import wxreactor, reactor
 #wxreactor.install()
-VERSION = '0.0.3'
+VERSION = '0.0.4'
 
 # present a stream friendly API (for instance to replace sys.stdout)
 # and pass this to a callable that's line based
@@ -69,7 +69,7 @@ class UploaderGui(EMUMainFrame):
     logging.getLogger('emu').addHandler( self.logging_handler )
     logging.getLogger('emu').setLevel(logging.INFO)
     logger.propagate = False
-
+    logger.info("Starting EVE Metrics Uploader %s" % VERSION)
     # load configuration from file
     self.config = Configuration(self)
   

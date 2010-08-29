@@ -21,9 +21,10 @@ class UpdateChecker ( Thread):
     if resp.status != 200:
       return
     data = resp.read()
-    #data = "0.0.2\nNew neat version online grab it, while it's hot!\nhttp://github.com/downloads/JamesHarrison/evemetrics_uploader/EVEMetricsUploaderSetup.exe"
+
     (version, notice, url) = data.split('\n',3)
-    
+    logger.debug("Current version: %s" % self.gui.VERSION)
+    logger.debug("New      version: %s" % version)
     (c_may, c_min, c_p) = (int(i) for i in self.gui.VERSION.split('.'))
     (n_may, n_min, n_p) = (int(i) for i in version.split('.'))
     if ((n_may >= c_may and n_min >= c_min and n_p > c_p) or

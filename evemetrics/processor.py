@@ -16,17 +16,17 @@ class Processor( object ):
             logger.debug('OnNewFile: %s' % pathname)
             if ( os.path.splitext( pathname )[1] != '.cache' ):
                 logger.debug( 'Not a .cache, skipping' )
-                return
+                return True
             try:
                 parsed_data = parser.parse( pathname )
             except IOError:
                 # I was retrying initially, but some files are deleted before we get a chance to parse them,
                 # which is what's really causing this
                 logger.warning( 'IOError exception, skipping' )
-                return
+                return True
             if ( parsed_data is None ):
                 logger.debug( 'No data parsed' )
-                return
+                return True
             t = self.reverence.invtypes.Get( parsed_data[2] )
             
             logger.debug( 'Call %s, regionID %d, typeID %d' % ( parsed_data[0], parsed_data[1], parsed_data[2] ) )
