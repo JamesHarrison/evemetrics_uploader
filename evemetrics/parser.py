@@ -32,18 +32,6 @@ def parse(filepath):
         order.duration,
         order.stationID, order.regionID, order.solarSystemID, order.jumps, 'cache'
       ])
-  elif 'GetCharOrders' in key:
-    # do awesome stuff here
-    orders = obj['lret']
-    for order in orders:
-      #print key
-      #print [
-      #  order.price, order.volRemaining, order.typeID, order.range, order.orderID, 
-      #  order.volEntered, order.minVolume, order.bid,
-      #  wintime_to_datetime(order.issued).strftime("%Y-%m-%d %H:%M:%S"),
-      #  order.duration,
-      #  order.stationID, order.regionID, order.solarSystemID, 'cache'
-      #]
   else:
     logger.debug('skipping unknown key %s' % pprint.pformat( key ))
     return

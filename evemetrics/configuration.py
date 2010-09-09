@@ -60,7 +60,13 @@ class Configuration( object ):
       if ( checkpath is None ):
         logger.info( 'Looking for your EVE cache in the usual locations' )
         if ( platform.system() == 'Windows' ):
-          checkpath = os.path.join( os.environ['LOCALAPPDATA'], 'CCP', 'EVE' )
+          from ctypes import wintypes, windll, c_int
+          CSIDL_LOCAL_APPDATA = 28
+          path_buf = wintypes.create_unicode_buffer(wintypes.MAX_PATH)
+          result = windll.shell32.SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, path_buf)
+          if result:
+          	raise RuntimeError("SHGetFolderPath failed, error code 0x%08x" % result)
+          checkpath = os.path.join( path_buf.value, 'CCP', 'EVE' )
         elif ( platform.system() == 'Linux' ):
           # assuming a standard wine installation, and the same username in wine than local user..
           checkpath = os.path.join( os.path.expanduser( '~/.wine/drive_c/users' ), os.environ['USER'], 'Local Settings/Application Data/CCP/EVE' )

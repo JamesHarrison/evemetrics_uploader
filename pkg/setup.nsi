@@ -22,7 +22,7 @@ Name "EVE Metrics Uploader"
 !define MULTIUSER_INSTALLMODE_INSTDIR_REGISTRY_VALUE "Path"
 
 # MUI Symbol Definitions
-!define MUI_ICON "${NSISDIR}\Contrib\Graphics\Icons\orange-install.ico"
+!define MUI_ICON "..\icons\icon_ico.ico"
 !define MUI_FINISHPAGE_NOAUTOCLOSE
 !define MUI_STARTMENUPAGE_REGISTRY_ROOT HKLM
 !define MUI_STARTMENUPAGE_NODISABLE
@@ -75,16 +75,19 @@ ShowUninstDetails show
 
 # Installer sections
 Section -Uploader SEC0000
-    SetOutPath $SMPROGRAMS\$StartMenuGroup
-    CreateShortcut "$SMPROGRAMS\$StartMenuGroup\EVE Metrics Uploader.lnk" $INSTDIR\uploader.exe
     SetOutPath $INSTDIR
+    CreateDirectory $SMPROGRAMS\$StartMenuGroup
+    #SetOutPath $SMPROGRAMS\$StartMenuGroup
+    CreateShortcut "$SMPROGRAMS\$StartMenuGroup\EVE Metrics Uploader.lnk" $INSTDIR\uploader.exe
+    
     SetOverwrite on
     File /r ..\dist\*
     WriteRegStr HKLM "${REGKEY}\Components" Uploader 1
 SectionEnd
 
 Section "Run on Startup" SEC0001
-    SetOutPath $SMSTARTUP
+    #SetOutPath $SMSTARTUP
+    SetOutPath $INSTDIR
     CreateShortcut "$SMSTARTUP\EVE Metrics Uploader.lnk" $INSTDIR\uploader.exe --quiet
     WriteRegStr HKLM "${REGKEY}\Components" "Run on Startup" 1
 SectionEnd
@@ -96,7 +99,7 @@ Section -post SEC0002
     SetOutPath $INSTDIR
     WriteUninstaller $INSTDIR\uninstall.exe
     !insertmacro MUI_STARTMENU_WRITE_BEGIN Application
-    SetOutPath $SMPROGRAMS\$StartMenuGroup
+    #SetOutPath $SMPROGRAMS\$StartMenuGroup
     CreateShortcut "$SMPROGRAMS\$StartMenuGroup\Uninstall $(^Name).lnk" $INSTDIR\uninstall.exe
     !insertmacro MUI_STARTMENU_WRITE_END
     WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$(^Name)" DisplayName "$(^Name)"
@@ -125,6 +128,8 @@ done${UNSECTION_ID}:
 # Uninstaller sections
 Section /o "-un.Run on Startup" UNSEC0001
     Delete /REBOOTOK "$SMSTARTUP\EVE Metrics Uploader.lnk"
+    Delete /REBOOTOK "$SMPROGRAMS\$StartMenuGroup\EVE Metrics Uploader.lnk"
+    Delete /REBOOTOK "$SMPROGRAMS\$StartMenuGroup"
     DeleteRegValue HKLM "${REGKEY}\Components" "Run on Startup"
 SectionEnd
 
