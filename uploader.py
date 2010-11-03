@@ -23,7 +23,7 @@ from reverence import blue
 
 #from twisted.internet import wxreactor, reactor
 #wxreactor.install()
-VERSION = '0.1.0'
+VERSION = '2.1.0'
 
 # present a stream friendly API (for instance to replace sys.stdout)
 # and pass this to a callable that's line based

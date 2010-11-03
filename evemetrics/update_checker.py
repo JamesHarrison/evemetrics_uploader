@@ -15,9 +15,10 @@ class UpdateChecker ( Thread):
     self.start()
     
   def run( self ):
-    conn = httplib.HTTPConnection("github.com")
+    conn = httplib.HTTPSConnection("github.com")
     conn.request("GET", "/JamesHarrison/evemetrics_uploader/raw/master/VERSION")
     resp = conn.getresponse()
+
     if resp.status != 200:
       return
     data = resp.read()
@@ -31,8 +32,6 @@ class UpdateChecker ( Thread):
         (n_may >= c_may and n_min > c_min) or
         (n_may > c_may)  
        ):
-      dial = wx.MessageDialog(None, 'Are you sure to quit?', 'Question', 
-            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
 
       update = wx.MessageDialog(None,"A new uploader version has been released:\n%s" % notice, "Download update?", wx.YES_NO | wx.ICON_QUESTION)
       if not self.gui.IsShown():
