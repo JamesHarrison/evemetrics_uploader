@@ -18,11 +18,11 @@ class UpdateChecker ( Thread):
     conn = httplib.HTTPSConnection("github.com")
     conn.request("GET", "/JamesHarrison/evemetrics_uploader/raw/master/VERSION")
     resp = conn.getresponse()
-
+    
     if resp.status != 200:
       return
     data = resp.read()
-
+    print data
     (version, notice, url) = data.split('\n',3)
     logger.debug("Current version: %s" % self.gui.VERSION)
     logger.debug("New      version: %s" % version)
