@@ -1,21 +1,11 @@
 h1. EVE Metrics Uploader 2
 
-This is horribly, horribly alpha code right now, and is liable to change dramatically.
+This repository contains version 2 of the EVE Metrics Uploader, a Reverence-based cache decoder and upload client designed to take market-relevant EVE cache data, decode it and put it in a standard CSV format, then upload it to a host.
 
-This repository contains version 2 of the EVE Metrics Uploader. Compared to version 1, this is Python instead of C#, will be cross-platform instead of Windows only, and decodes the cache with Reverence instead of a closed-source crude.dll.
-
-h2. Installation (by and large)
-
-All you need to do in theory is open uploader.py, set your application token and EVE cache path, and away you go. In future versions, a GUI will exist. At present, it does not.
-
-If you get issues relating to blue.so being broken you may need to rebuild Reverence. To do this, grab Reverence, run 'python setup.py build' and move the reverence folder in the build folder to the emu2 root. Alternatively, delete emu2's copy of reverence and run 'python setup.py install' to install it at the system level.
+EVE Metrics may be gone but the code lives on. Make use of it.
 
 h2. Debugging and Development
 
 Anyone is welcome to contribute to this uploader. The main reason for open sourcing the code is to enable people to help us maintain it and to enable faster debugging of issues in the upload chain.
 
 We're also aware of the trust implications of EVE-related apps that are closed source. We'd much rather have everything open source.
-
-h2. Community
-
-If you're gonna start hacking on this then you might want to pop your head into irc.coldfront.net #mmmetrics or #eve-dev. We're sitting around in there most of the time.
